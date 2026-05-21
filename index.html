@@ -88,7 +88,19 @@
 </head>
 <body>
 
-    <nav class="sticky top-0 z-50 bg-[#020617] border-b border-slate-800 px-4 py-3 shadow-2xl">
+    <!-- Connection & Seeding Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4">
+        <div class="flex items-center gap-2 mb-4 animate-pulse">
+            <span class="text-amber-400 text-3xl">✨</span>
+            <span class="text-white font-black text-2xl tracking-tighter uppercase">Magic Kaion</span>
+        </div>
+        <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-500 rounded-full w-1/2 animate-infinite-scroll" style="animation: loading-bar 1.5s infinite ease-in-out"></div>
+        </div>
+        <p class="text-xs text-slate-500 mt-4 tracking-wider uppercase font-medium">Syncing persistent stock database...</p>
+    </div>
+
+    <nav class="sticky top-0 z-40 bg-[#020617] border-b border-slate-800 px-4 py-3 shadow-2xl">
         <div class="nav-container">
             <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-amber-400 text-xl">✨</span>
@@ -121,12 +133,12 @@
                     <button onclick="clearColorFilters()" class="text-xs text-indigo-400 hover:underline">Clear Colors</button>
                 </div>
                 <div class="flex gap-3 mt-2">
-                    <button onclick="toggleColorFilter('W', this)" class="color-dot bg-amber-50 text-slate-950" title="White">W</button>
-                    <button onclick="toggleColorFilter('U', this)" class="color-dot bg-blue-600 text-white" title="Blue">U</button>
-                    <button onclick="toggleColorFilter('B', this)" class="color-dot bg-neutral-800 text-slate-300" title="Black">B</button>
-                    <button onclick="toggleColorFilter('R', this)" class="color-dot bg-red-600 text-white" title="Red">R</button>
-                    <button onclick="toggleColorFilter('G', this)" class="color-dot bg-green-600 text-white" title="Green">G</button>
-                    <button onclick="toggleColorFilter('C', this)" class="color-dot bg-slate-500 text-white" title="Colorless">C</button>
+                    <button id="color-W" onclick="toggleColorFilter('W', this)" class="color-dot bg-amber-50 text-slate-950" title="White">W</button>
+                    <button id="color-U" onclick="toggleColorFilter('U', this)" class="color-dot bg-blue-600 text-white" title="Blue">U</button>
+                    <button id="color-B" onclick="toggleColorFilter('B', this)" class="color-dot bg-neutral-800 text-slate-300" title="Black">B</button>
+                    <button id="color-R" onclick="toggleColorFilter('R', this)" class="color-dot bg-red-600 text-white" title="Red">R</button>
+                    <button id="color-G" onclick="toggleColorFilter('G', this)" class="color-dot bg-green-600 text-white" title="Green">G</button>
+                    <button id="color-C" onclick="toggleColorFilter('C', this)" class="color-dot bg-slate-500 text-white" title="Colorless">C</button>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -260,7 +272,7 @@
                     </div>
                     <!-- Order History Retrieval Trigger Button -->
                     <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
-                        📋 View Order History Logs (<span id="admin-orders-count">1</span>)
+                        📋 View Order History Logs (<span id="admin-orders-count">0</span>)
                     </button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
@@ -332,8 +344,29 @@
         </div>
     </div>
 
-    <script>
-        let inventory = [
+    <!-- Firebase Script Initialization -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global environment bindings
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Core dynamic arrays populated persistently via Firestore
+        let inventory = [];
+        let orders = [];
+        let cart = [];
+        let selectedColors = [];
+        let activeView = 'browse';
+        let currentUserState = null;
+
+        // Seeding database default listings
+        const seedInventoryDefaults = [
             { id: '1', name: 'Black Lotus', set: 'Alpha', type: 'Artifact', cmc: '0', colors: ['C'], price: 45000, qty: 10, img: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
             { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', type: 'Planeswalker', cmc: '4', colors: ['U'], price: 45.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
             { id: '3', name: 'Lightning Bolt', set: 'M11', type: 'Instant', cmc: '1', colors: ['R'], price: 3.00, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' },
@@ -342,28 +375,90 @@
             { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
         ];
 
-        // Orders Database Store - Populated with initial test data
-        let orders = [
-            {
-                poCode: 'PO-738291',
-                date: '5/21/2026, 11:24:15 AM',
-                items: [
-                    { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', qty: 2, price: 45.50, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
-                    { id: '3', name: 'Lightning Bolt', set: 'M11', qty: 4, price: 3.00, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' }
-                ],
-                total: 103.00
+        // Auth Sequence (Priority Compliant)
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication check failure:", error);
+                showToast("Connection to Auth server failed.", "error");
             }
-        ];
-
-        let cart = [];
-        let selectedColors = [];
-        let activeView = 'browse';
-
-        window.onload = function() {
-            renderStore();
-            updateNavigationIndicators();
-            updateAdminOrdersCount();
         };
+
+        // Initialize Firestore Sync Subscriptions
+        onAuthStateChanged(auth, async (user) => {
+            currentUserState = user;
+            if (user) {
+                await seedInventoryIfEmpty();
+                setupRealtimeSync();
+            }
+        });
+
+        // Seed inventory database if document counts return 0
+        async function seedInventoryIfEmpty() {
+            if (!currentUserState) return;
+            try {
+                const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+                const querySnapshot = await getDocs(inventoryCol);
+                
+                if (querySnapshot.empty) {
+                    for (const card of seedInventoryDefaults) {
+                        const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
+                        await setDoc(cardRef, card);
+                    }
+                }
+            } catch (err) {
+                console.error("Error seeding inventory defaults:", err);
+            }
+        }
+
+        // Realtime sync channels utilizing standard onSnapshot (Compliant with Rule 2)
+        function setupRealtimeSync() {
+            if (!currentUserState) return;
+
+            const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+            const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+
+            // Inventory Realtime Stream
+            onSnapshot(inventoryCol, (snapshot) => {
+                const items = [];
+                snapshot.forEach(docSnap => {
+                    items.push(docSnap.data());
+                });
+                // Sort by ID to preserve consistency
+                inventory = items.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+                
+                // Hide dynamic syncing screen overlay
+                const loader = document.getElementById('loading-overlay');
+                if (loader) loader.classList.add('hidden');
+
+                renderStore();
+                renderAdminList();
+            }, (err) => {
+                console.error("Inventory sub snapshot error:", err);
+            });
+
+            // Orders History Realtime Stream
+            onSnapshot(ordersCol, (snapshot) => {
+                const items = [];
+                snapshot.forEach(docSnap => {
+                    items.push(docSnap.data());
+                });
+                // Sort by timestamp descending
+                orders = items.sort((a, b) => new Date(b.date) - new Date(a.date));
+                updateAdminOrdersCount();
+                
+                if (activeView === 'admin' && !document.getElementById('admin-orders-panel').classList.contains('hidden')) {
+                    renderOrderHistoryLogs();
+                }
+            }, (err) => {
+                console.error("Orders sub snapshot error:", err);
+            });
+        }
 
         // Custom Overlay Toast Helper
         function showToast(message) {
@@ -512,14 +607,19 @@
             renderStore(filteredData);
         }
 
-        // Test Helper: Reset all quantities to 10
-        function resetAllQuantities() {
-            inventory.forEach(card => {
-                card.qty = 10;
-            });
-            renderStore();
-            renderAdminList();
-            showToast("Test Utility: All stock quantities reset to 10.");
+        // Test Helper: Reset all quantities to 10 persistently in Firestore
+        async function resetAllQuantities() {
+            if (!currentUserState) return;
+            try {
+                for (const card of inventory) {
+                    const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
+                    await updateDoc(cardRef, { qty: 10 });
+                }
+                showToast("All inventory stocks reset to 10 in Database.");
+            } catch (err) {
+                console.error("Error resetting stocks:", err);
+                showToast("Database connection error while resetting stocks.");
+            }
         }
 
         // Toggles expandable Order Log lists in admin dashboard
@@ -731,85 +831,90 @@
             totalPrice.innerText = `$${runningSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // Checkout Process: Subtract stock, generate Purchase Order (PO) & show recap layout
-        function checkoutMock() {
-            if (cart.length === 0) return;
+        // Checkout Process: Subtract stock, write PO receipt securely to Firestore database
+        async function checkoutMock() {
+            if (cart.length === 0 || !currentUserState) return;
 
-            // 1. Decrease QTY in our inventory state based on cart items
-            cart.forEach(cartItem => {
-                const stockItem = inventory.find(invItem => invItem.id === cartItem.id);
-                if (stockItem && stockItem.qty > 0) {
-                    stockItem.qty -= 1; // Deduct one unit of stock
-                }
-            });
-
-            // 2. Generate PO number
-            const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
-            document.getElementById('receipt-po-number').innerText = poCode;
-
-            // 3. Aggregate cart elements to make a clean item-grouped recap
-            const aggregates = {};
-            cart.forEach(item => {
-                if (aggregates[item.id]) {
-                    aggregates[item.id].qty += 1;
-                } else {
-                    aggregates[item.id] = { card: item, qty: 1 };
-                }
-            });
-
-            // 4. Render elements inside Receipt container
-            let totalRecapSum = 0;
-            const receiptContainer = document.getElementById('receipt-items');
-            
-            const processedItems = Object.values(aggregates).map(item => {
-                const subTotal = item.card.price * item.qty;
-                totalRecapSum += subTotal;
-                return {
-                    markup: `
-                        <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                            <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
-                            <div class="flex-grow min-width-0">
-                                <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
-                                <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
-                                <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                            </div>
-                        </div>
-                    `,
-                    orderItemRecord: {
-                        id: item.card.id,
-                        name: item.card.name,
-                        set: item.card.set,
-                        qty: item.qty,
-                        price: item.card.price,
-                        img: item.card.img
+            try {
+                // 1. Decrease quantities inside DB collection
+                const aggregates = {};
+                cart.forEach(item => {
+                    if (aggregates[item.id]) {
+                        aggregates[item.id].qty += 1;
+                    } else {
+                        aggregates[item.id] = { card: item, qty: 1 };
                     }
+                });
+
+                // Deduct stock for each distinct item
+                for (const itemId of Object.keys(aggregates)) {
+                    const group = aggregates[itemId];
+                    const invCard = inventory.find(inv => inv.id === itemId);
+                    if (invCard) {
+                        const newStock = Math.max(0, invCard.qty - group.qty);
+                        const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
+                        await updateDoc(cardRef, { qty: newStock });
+                    }
+                }
+
+                // 2. Generate custom PO reference
+                const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
+                document.getElementById('receipt-po-number').innerText = poCode;
+
+                // 3. Prepare recap elements & receipt list
+                let totalRecapSum = 0;
+                const receiptContainer = document.getElementById('receipt-items');
+                
+                const processedItems = Object.values(aggregates).map(item => {
+                    const subTotal = item.card.price * item.qty;
+                    totalRecapSum += subTotal;
+                    return {
+                        markup: `
+                            <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                                <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                                <div class="flex-grow min-width-0">
+                                    <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
+                                    <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
+                                    <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                </div>
+                            </div>
+                        `,
+                        orderItemRecord: {
+                            id: item.card.id,
+                            name: item.card.name,
+                            set: item.card.set,
+                            qty: item.qty,
+                            price: item.card.price,
+                            img: item.card.img
+                        }
+                    };
+                });
+
+                receiptContainer.innerHTML = processedItems.map(p => p.markup).join('');
+                document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+                // 4. Record new PO Receipt logs on Firestore database
+                const orderRecord = {
+                    poCode: poCode,
+                    date: new Date().toLocaleString(),
+                    items: processedItems.map(p => p.orderItemRecord),
+                    total: totalRecapSum
                 };
-            });
 
-            receiptContainer.innerHTML = processedItems.map(p => p.markup).join('');
-            document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
+                await setDoc(orderRef, orderRecord);
 
-            // 5. Append this order record securely into our local Orders database
-            const orderRecord = {
-                poCode: poCode,
-                date: new Date().toLocaleString(),
-                items: processedItems.map(p => p.orderItemRecord),
-                total: totalRecapSum
-            };
-            orders.unshift(orderRecord); // Prepend to show newest orders first
+                // 5. Present Order Receipt screen
+                showView('receipt');
 
-            // 6. Update storefront and admin dashboard displays immediately
-            renderStore();
-            renderAdminList();
-            updateAdminOrdersCount();
-
-            // 7. Switch visible screen to receipt
-            showView('receipt');
-
-            // 8. Clean Cart memory
-            cart = [];
-            updateCartQuantity();
-            showToast(`Order Confirmed: ${poCode}`);
+                // 6. Reset cart state
+                cart = [];
+                updateCartQuantity();
+                showToast(`Order logged successfully: ${poCode}`);
+            } catch (err) {
+                console.error("Purchase execution error:", err);
+                showToast("Failed to process transaction in persistent memory.", "error");
+            }
         }
 
         // Copies generated PO directly to clipboard safely
@@ -825,7 +930,9 @@
         }
 
         // Admin controls
-        function addSingleCard() {
+        async function addSingleCard() {
+            if (!currentUserState) return;
+
             const name = document.getElementById('admin-name').value;
             const set = document.getElementById('admin-set').value;
             const type = document.getElementById('admin-type').value;
@@ -842,30 +949,43 @@
 
             const colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
 
+            // Calculate auto-incremented database ID
+            const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
+
             const newCard = {
-                id: (inventory.length + 1).toString(),
+                id: newId,
                 name, set, type, cmc, colors, price, qty, img
             };
 
-            inventory.unshift(newCard);
-            renderAdminList();
-            renderStore();
-            
-            document.getElementById('admin-name').value = '';
-            document.getElementById('admin-set').value = '';
-            document.getElementById('admin-cmc').value = '';
-            document.getElementById('admin-price').value = '';
-            document.getElementById('admin-qty').value = '10';
-            document.getElementById('admin-colors').value = '';
-            document.getElementById('admin-img').value = '';
-            
-            showToast(`${name} successfully registered with QTY: ${qty}.`);
+            try {
+                const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newId);
+                await setDoc(cardRef, newCard);
+
+                document.getElementById('admin-name').value = '';
+                document.getElementById('admin-set').value = '';
+                document.getElementById('admin-cmc').value = '';
+                document.getElementById('admin-price').value = '';
+                document.getElementById('admin-qty').value = '10';
+                document.getElementById('admin-colors').value = '';
+                document.getElementById('admin-img').value = '';
+
+                showToast(`${name} registered persistently with QTY: ${qty}.`);
+            } catch (err) {
+                console.error("Card addition failure:", err);
+                showToast("Database connection error. Unable to save card.", "error");
+            }
         }
 
-        function removeCardFromInventory(id) {
-            inventory = inventory.filter(c => c.id !== id);
-            renderAdminList();
-            renderStore();
+        async function removeCardFromInventory(id) {
+            if (!currentUserState) return;
+            try {
+                const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
+                await deleteDoc(cardRef);
+                showToast("Item deleted persistently from database.");
+            } catch (err) {
+                console.error("Deletion error:", err);
+                showToast("Failed to delete entry.", "error");
+            }
         }
 
         function renderAdminList() {
@@ -890,12 +1010,13 @@
             document.getElementById('csv-file-input').click();
         }
 
-        function importInventoryFromCsv(event) {
+        async function importInventoryFromCsv(event) {
+            if (!currentUserState) return;
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const text = e.target.result;
                 const rows = text.split('\n');
                 let newInventory = [];
@@ -916,19 +1037,31 @@
                         const qty = matches[7] ? parseInt(matches[7].replace(/"/g, '')) || 10 : 10;
 
                         newInventory.push({
-                            id: (newInventory.length + Date.now()).toString(),
+                            id: (newInventory.length + 1).toString(),
                             name, set, type, cmc, colors, price, qty, img
                         });
                     }
                 }
 
                 if (newInventory.length > 0) {
-                    inventory = newInventory;
-                    renderStore();
-                    renderAdminList();
-                    showToast(`Successfully imported ${newInventory.length} listings with custom stock levels.`);
+                    try {
+                        // 1. Delete previous inventory documents on database
+                        for (const oldCard of inventory) {
+                            const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
+                            await deleteDoc(oldCardRef);
+                        }
+                        // 2. Insert newly imported CSV documents
+                        for (const newCard of newInventory) {
+                            const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
+                            await setDoc(newCardRef, newCard);
+                        }
+                        showToast(`Successfully imported ${newInventory.length} persistent listings.`);
+                    } catch (err) {
+                        console.error("Bulk upload writing error:", err);
+                        showToast("Failed to overwrite database.", "error");
+                    }
                 } else {
-                    showToast('Failure processing CSV.');
+                    showToast('Failure processing CSV structure.');
                 }
             };
             reader.readAsText(file);
@@ -953,6 +1086,32 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // Trigger active startup auth routine
+        initAuth();
+
+        // Bind core utilities back to window scope for HTML click execution
+        window.goHome = goHome;
+        window.toggleAdvancedSearch = toggleAdvancedSearch;
+        window.showView = showView;
+        window.clearColorFilters = clearColorFilters;
+        window.toggleColorFilter = toggleColorFilter;
+        window.applyFilters = applyFilters;
+        window.resetAllQuantities = resetAllQuantities;
+        window.toggleOrderHistory = toggleOrderHistory;
+        window.addToCart = addToCart;
+        window.removeFromCart = removeFromCart;
+        window.clearCart = clearCart;
+        window.checkoutMock = checkoutMock;
+        window.copyPoNumber = copyPoNumber;
+        window.addSingleCard = addSingleCard;
+        window.removeCardFromInventory = removeCardFromInventory;
+        window.triggerCsvImport = triggerCsvImport;
+        window.importInventoryFromCsv = importInventoryFromCsv;
+        window.exportInventoryToCsv = exportInventoryToCsv;
+        window.openCardModal = openCardModal;
+        window.closeCardModal = closeCardModal;
+        window.copySpecificPo = copySpecificPo;
     </script>
 </body>
 </html>
