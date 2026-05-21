@@ -241,25 +241,43 @@
                 <p class="text-xs text-slate-500 mt-1">Manage, update, and bulk upload card data securely.</p>
             </div>
 
-            <!-- CSV Actions Container -->
+            <!-- CSV Actions & Diagnostics Container -->
             <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-white text-sm">Spreadsheet Synchronization</h3>
-                    <!-- Testing Option: Reset Quantity of each item to 10 -->
-                    <button onclick="resetAllQuantities()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition-colors shadow">
-                        🔄 Test: Reset Qty to 10
-                    </button>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">
-                        📥 Import CSV Data
-                    </button>
-                    <button onclick="exportInventoryToCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-3 rounded-lg text-xs transition-colors">
-                        📤 Export CSV Data
+                <div class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-white text-sm">Database & Synchronization</h3>
+                        <button onclick="resetAllQuantities()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition-colors shadow">
+                            🔄 Test: Reset Qty to 10
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">
+                            📥 Import CSV Data
+                        </button>
+                        <button onclick="exportInventoryToCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-3 rounded-lg text-xs transition-colors">
+                            📤 Export CSV Data
+                        </button>
+                    </div>
+                    <!-- Order History Retrieval Trigger Button -->
+                    <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
+                        📋 View Order History Logs (<span id="admin-orders-count">1</span>)
                     </button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
                 <p class="text-[10px] text-slate-500 italic">Expected CSV format: Name, Set, Type, CMC, Price, ImageURL, Qty</p>
+            </div>
+
+            <!-- Expandable Order Logs Section -->
+            <div id="admin-orders-panel" class="hidden bg-[#1e293b] p-5 rounded-xl border border-indigo-950 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
+                        <span>📋</span> Order History Logs
+                    </h3>
+                    <button onclick="toggleOrderHistory()" class="text-xs text-slate-400 hover:text-white">Close</button>
+                </div>
+                <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1">
+                    <!-- Previous order records will render here -->
+                </div>
             </div>
 
             <!-- Individual Add Card Form -->
@@ -324,6 +342,19 @@
             { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
         ];
 
+        // Orders Database Store - Populated with initial test data
+        let orders = [
+            {
+                poCode: 'PO-738291',
+                date: '5/21/2026, 11:24:15 AM',
+                items: [
+                    { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', qty: 2, price: 45.50, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
+                    { id: '3', name: 'Lightning Bolt', set: 'M11', qty: 4, price: 3.00, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' }
+                ],
+                total: 103.00
+            }
+        ];
+
         let cart = [];
         let selectedColors = [];
         let activeView = 'browse';
@@ -331,6 +362,7 @@
         window.onload = function() {
             renderStore();
             updateNavigationIndicators();
+            updateAdminOrdersCount();
         };
 
         // Custom Overlay Toast Helper
@@ -395,6 +427,7 @@
             } else if (viewName === 'admin') {
                 document.getElementById('view-admin').classList.remove('hidden');
                 renderAdminList();
+                updateAdminOrdersCount();
             } else if (viewName === 'receipt') {
                 document.getElementById('view-receipt').classList.remove('hidden');
             }
@@ -487,6 +520,73 @@
             renderStore();
             renderAdminList();
             showToast("Test Utility: All stock quantities reset to 10.");
+        }
+
+        // Toggles expandable Order Log lists in admin dashboard
+        function toggleOrderHistory() {
+            const panel = document.getElementById('admin-orders-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                renderOrderHistoryLogs();
+            }
+        }
+
+        function updateAdminOrdersCount() {
+            const indicator = document.getElementById('admin-orders-count');
+            if (indicator) {
+                indicator.innerText = orders.length;
+            }
+        }
+
+        // Renders visual transaction history in admin panel
+        function renderOrderHistoryLogs() {
+            const listContainer = document.getElementById('admin-orders-list');
+            if (orders.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-slate-500 py-6 text-xs">No orders have been recorded yet.</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = orders.map(order => {
+                const itemsMarkup = order.items.map(item => `
+                    <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
+                        <img src="${item.img}" onclick="openCardModal('${item.id}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
+                        <div class="min-width-0 flex-grow">
+                            <p class="text-white text-[11px] font-bold truncate">${item.name}</p>
+                            <p class="text-[9px] text-slate-500">${item.set} • Qty: ${item.qty} • $${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-start gap-2 border-b border-slate-800/80 pb-2">
+                            <div>
+                                <span onclick="copySpecificPo('${order.poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
+                                    ${order.poCode} <span class="text-[10px]">📋</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500 block mt-0.5">${order.date}</span>
+                            </div>
+                            <span class="text-emerald-500 font-bold text-sm">$${order.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items (${order.items.reduce((acc, i) => acc + i.qty, 0)})</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                                ${itemsMarkup}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function copySpecificPo(poCode) {
+            const tempInput = document.createElement("input");
+            tempInput.value = poCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast(`Copied ${poCode} to clipboard!`);
         }
 
         function renderStore(data = inventory) {
@@ -661,31 +761,52 @@
             let totalRecapSum = 0;
             const receiptContainer = document.getElementById('receipt-items');
             
-            receiptContainer.innerHTML = Object.values(aggregates).map(item => {
+            const processedItems = Object.values(aggregates).map(item => {
                 const subTotal = item.card.price * item.qty;
                 totalRecapSum += subTotal;
-                return `
-                    <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                        <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
-                        <div class="flex-grow min-width-0">
-                            <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
-                            <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
-                            <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                return {
+                    markup: `
+                        <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                            <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                            <div class="flex-grow min-width-0">
+                                <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
+                                <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
+                                <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    `,
+                    orderItemRecord: {
+                        id: item.card.id,
+                        name: item.card.name,
+                        set: item.card.set,
+                        qty: item.qty,
+                        price: item.card.price,
+                        img: item.card.img
+                    }
+                };
+            });
 
+            receiptContainer.innerHTML = processedItems.map(p => p.markup).join('');
             document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
 
-            // 5. Update storefront and admin dashboard displays immediately
+            // 5. Append this order record securely into our local Orders database
+            const orderRecord = {
+                poCode: poCode,
+                date: new Date().toLocaleString(),
+                items: processedItems.map(p => p.orderItemRecord),
+                total: totalRecapSum
+            };
+            orders.unshift(orderRecord); // Prepend to show newest orders first
+
+            // 6. Update storefront and admin dashboard displays immediately
             renderStore();
             renderAdminList();
+            updateAdminOrdersCount();
 
-            // 6. Switch visible screen to receipt
+            // 7. Switch visible screen to receipt
             showView('receipt');
 
-            // 7. Clean Cart memory
+            // 8. Clean Cart memory
             cart = [];
             updateCartQuantity();
             showToast(`Order Confirmed: ${poCode}`);
