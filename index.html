@@ -19,7 +19,6 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
         }
         
-        /* Layout fixes for Mobile card rows */
         .card-row {
             display: flex;
             width: 100%;
@@ -34,7 +33,6 @@
             border-color: #4f46e5;
         }
 
-        /* Card details take 100% remaining horizontal space */
         .card-details {
             display: flex;
             flex-direction: column;
@@ -43,7 +41,6 @@
             min-width: 0;
         }
 
-        /* Pushes the price to the left and the Add button to the absolute right */
         .action-bar {
             display: flex;
             justify-content: space-between; 
@@ -78,7 +75,6 @@
             transform: scale(0.9);
         }
 
-        /* Prevent background scroll when modal is active */
         .modal-open {
             overflow: hidden;
         }
@@ -88,7 +84,6 @@
 </head>
 <body>
 
-    <!-- Connection & Seeding Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4">
         <div class="flex items-center gap-2 mb-4 animate-pulse">
             <span class="text-amber-400 text-3xl">✨</span>
@@ -216,7 +211,6 @@
             </div>
         </div>
 
-        <!-- Order Confirmed View (Receipt) -->
         <div id="view-receipt" class="hidden space-y-6">
             <div class="text-center py-6 bg-slate-800/50 rounded-2xl border border-slate-800 p-6 shadow-xl">
                 <span class="text-5xl block mb-4">🎉</span>
@@ -230,11 +224,9 @@
                 <p class="text-[10px] text-slate-500">☝️ Click the code block to copy the PO number</p>
             </div>
 
-            <!-- Receipt Order Items Recap -->
             <div class="space-y-3">
                 <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Order Recap</h3>
                 <div id="receipt-items" class="space-y-2.5">
-                    <!-- Recap Items Render Dynamically -->
                 </div>
                 <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
                     <span class="text-slate-400 font-bold text-sm">Total Value Settled:</span>
@@ -253,7 +245,6 @@
                 <p class="text-xs text-slate-500 mt-1">Manage, update, and bulk upload card data securely.</p>
             </div>
 
-            <!-- CSV Actions & Diagnostics Container -->
             <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
                 <div class="flex flex-col gap-3">
                     <div class="flex justify-between items-center">
@@ -270,7 +261,6 @@
                             📤 Export CSV Data
                         </button>
                     </div>
-                    <!-- Order History Retrieval Trigger Button -->
                     <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
                         📋 View Order History Logs (<span id="admin-orders-count">0</span>)
                     </button>
@@ -279,7 +269,6 @@
                 <p class="text-[10px] text-slate-500 italic">Expected CSV format: Name, Set, Type, CMC, Price, ImageURL, Qty</p>
             </div>
 
-            <!-- Expandable Order Logs Section -->
             <div id="admin-orders-panel" class="hidden bg-[#1e293b] p-5 rounded-xl border border-indigo-950 space-y-4">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                     <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
@@ -288,11 +277,9 @@
                     <button onclick="toggleOrderHistory()" class="text-xs text-slate-400 hover:text-white">Close</button>
                 </div>
                 <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1">
-                    <!-- Previous order records will render here -->
                 </div>
             </div>
 
-            <!-- Individual Add Card Form -->
             <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 space-y-3">
                 <h3 class="font-bold text-white text-sm">Add New Singles Entry</h3>
                 <div class="space-y-2">
@@ -322,7 +309,6 @@
                 </button>
             </div>
 
-            <!-- Current Inventory Management List -->
             <div class="space-y-3">
                 <h3 class="font-black text-white text-sm uppercase tracking-wider">Current Stock List</h3>
                 <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -331,7 +317,6 @@
         </div>
     </main>
 
-    <!-- Custom Floating Toast Alerts -->
     <div id="toast-notice" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-2 opacity-0"></div>
 
     <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-200 opacity-0">
@@ -344,57 +329,47 @@
         </div>
     </div>
 
-    <!-- Firebase Script Initialization -->
-<script type="module">
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDocs, collection, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 1. HARDCODED CONFIGURATION (Safe for GitHub Pages)
-        const firebaseConfig = {
-            apiKey: "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0",
-            authDomain: "magic-kion.firebaseapp.com",
-            projectId: "magic-kion",
-            storageBucket: "magic-kion.firebasestorage.app",
-            messagingSenderId: "928438635995",
-            appId: "1:928438635995:web:ccb79329b678f299046bfe"
+        // --- MANUAL CONFIGURATION FOR GITHUB DEPLOYMENT ---
+        // Replace these values with your actual Firebase project settings
+        const manualFirebaseConfig = {
+    apiKey: "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0",
+  authDomain: "magic-kion.firebaseapp.com",
+  projectId: "magic-kion",
+  storageBucket: "magic-kion.firebasestorage.app",
+  messagingSenderId: "928438635995",
+  appId: "1:928438635995:web:ccb79329b678f299046bfe"
         };
-        
         const appId = 'magic-kaion-app';
-        const loaderStatus = document.getElementById('loader-status');
+        // ----------------------------------------------------
 
-        // 2. INITIALIZATION
-        let db, auth;
+        let db = null;
+        let auth = null;
+        let useFirebase = false;
+
         try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            // Check for system-injected config OR fallback to the manual config above
+            const config = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+                ? JSON.parse(__firebase_config) 
+                : manualFirebaseConfig;
             
-            // 3. AUTH AND DATA SYNC
-          onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const invRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
-                onSnapshot(invRef, (snapshot) => {
-                    const inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (window.renderStore) window.renderStore(inventory);
-                    const loader = document.getElementById('loading-overlay');
-                    if (loader) loader.classList.add('hidden');
-                }, (err) => console.error("Snapshot Error:", err));
+            // Basic sanity check to prevent initialization with placeholder values
+            if (config.apiKey && config.apiKey !== "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0") {
+                const app = initializeApp(config);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useFirebase = true;
             } else {
-                signInAnonymously(auth).catch(e => console.error("Auth Error:", e));
+                console.warn("Firebase configuration incomplete. Activating localized fallback.");
             }
-        });
+        } catch (error) {
+            console.error("Firebase setup crashed, falling back to local database:", error);
+        }
 
-        // 3. Define functions and attach to window
-        window.saveCard = async (card) => {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id || crypto.randomUUID()), card);
-        };
-
-    } catch (err) {
-        console.error("Initialization Failed:", err);
-    }
-
-        // Core dynamic arrays populated persistently via Firestore or Local Storage
         let inventory = [];
         let orders = [];
         let cart = [];
@@ -402,7 +377,6 @@
         let activeView = 'browse';
         let currentUserState = null;
 
-        // Seeding database default listings
         const seedInventoryDefaults = [
             { id: '1', name: 'Black Lotus', set: 'Alpha', type: 'Artifact', cmc: '0', colors: ['C'], price: 45000, qty: 10, img: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
             { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', type: 'Planeswalker', cmc: '4', colors: ['U'], price: 45.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
@@ -412,7 +386,6 @@
             { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
         ];
 
-        // Auth Sequence (Priority Compliant)
         const initAuth = async () => {
             if (!useFirebase) {
                 loadLocalFallback("Offline Mode: Running on local storage database.");
@@ -430,7 +403,6 @@
             }
         };
 
-        // Fallback engine to load persistently from LocalStorage
         function loadLocalFallback(msg = "Local test mode active.") {
             const savedInventory = localStorage.getItem('magic_kaion_inventory');
             if (savedInventory) {
@@ -444,21 +416,10 @@
             if (savedOrders) {
                 orders = JSON.parse(savedOrders);
             } else {
-                orders = [
-                    {
-                        poCode: 'PO-738291',
-                        date: '5/21/2026, 11:24:15 AM',
-                        items: [
-                            { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', qty: 2, price: 45.50, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
-                            { id: '3', name: 'Lightning Bolt', set: 'M11', qty: 4, price: 3.00, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' }
-                        ],
-                        total: 103.00
-                    }
-                ];
+                orders = [];
                 localStorage.setItem('magic_kaion_orders', JSON.stringify(orders));
             }
 
-            // Instantly hide overlay
             const loader = document.getElementById('loading-overlay');
             if (loader) loader.classList.add('hidden');
 
@@ -468,20 +429,18 @@
             showToast(msg);
         }
 
-        // Initialize Firestore Sync Subscriptions
-        if (useFirebase) {
-            onAuthStateChanged(auth, async (user) => {
-                currentUserState = user;
-                if (user) {
-                    await seedInventoryIfEmpty();
-                    setupRealtimeSync();
-                } else {
-                    loadLocalFallback();
-                }
-            });
-        }
+        onAuthStateChanged(auth, async (user) => {
+            currentUserState = user;
+            if (useFirebase && user) {
+                await seedInventoryIfEmpty();
+                setupRealtimeSync();
+            } else if (useFirebase && !user) {
+                // Do nothing, auth is handling it
+            } else {
+                loadLocalFallback();
+            }
+        });
 
-        // Seed inventory database if document counts return 0
         async function seedInventoryIfEmpty() {
             if (!currentUserState || !useFirebase) return;
             try {
@@ -499,14 +458,12 @@
             }
         }
 
-        // Realtime sync channels utilizing standard onSnapshot (Compliant with Rule 2)
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
             const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
             const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
 
-            // Inventory Realtime Stream
             onSnapshot(inventoryCol, (snapshot) => {
                 const items = [];
                 snapshot.forEach(docSnap => {
@@ -524,7 +481,6 @@
                 loadLocalFallback();
             });
 
-            // Orders History Realtime Stream
             onSnapshot(ordersCol, (snapshot) => {
                 const items = [];
                 snapshot.forEach(docSnap => {
@@ -541,7 +497,6 @@
             });
         }
 
-        // Custom Overlay Toast Helper
         function showToast(message) {
             const toast = document.getElementById('toast-notice');
             toast.innerText = message;
@@ -558,7 +513,6 @@
             }, 3000);
         }
 
-        // Modal Zoom Logic Engine
         function openCardModal(cardId) {
             const card = inventory.find(c => c.id === cardId);
             if (!card) return;
@@ -688,7 +642,6 @@
             renderStore(filteredData);
         }
 
-        // Persistent QTY reset function compatible with Offline & Online environments
         async function resetAllQuantities() {
             if (useFirebase && currentUserState) {
                 try {
@@ -712,7 +665,6 @@
             }
         }
 
-        // Toggles expandable Order Log lists in admin dashboard
         function toggleOrderHistory() {
             const panel = document.getElementById('admin-orders-panel');
             panel.classList.toggle('hidden');
@@ -728,7 +680,6 @@
             }
         }
 
-        // Renders visual transaction history in admin panel
         function renderOrderHistoryLogs() {
             const listContainer = document.getElementById('admin-orders-list');
             if (orders.length === 0) {
@@ -844,7 +795,6 @@
             const card = inventory.find(c => c.id === id);
             if (!card) return;
 
-            // Count occurrences already in the cart
             const currentInCart = cart.filter(item => item.id === id).length;
 
             if (currentInCart >= card.qty) {
@@ -857,7 +807,6 @@
             showToast(`Added ${card.name} to cart.`);
         }
 
-        // Refresh navigation-level badge totals
         function updateCartQuantity() {
             const countDiv = document.getElementById('cart-count');
             if (cart.length > 0) {
@@ -922,11 +871,9 @@
             totalPrice.innerText = `$${runningSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // Checkout Process: Subtract stock, write PO receipt safely based on environment
         async function checkoutMock() {
             if (cart.length === 0) return;
 
-            // Prepare grouped checkout summaries
             const aggregates = {};
             cart.forEach(item => {
                 if (aggregates[item.id]) {
@@ -936,11 +883,9 @@
                 }
             });
 
-            // 1. Generate custom PO reference
             const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
             document.getElementById('receipt-po-number').innerText = poCode;
 
-            // 2. Prepare receipt items visualization Markup
             let totalRecapSum = 0;
             const receiptContainer = document.getElementById('receipt-items');
             
@@ -981,7 +926,6 @@
 
             if (useFirebase && currentUserState) {
                 try {
-                    // Deduct stock for each distinct item
                     for (const itemId of Object.keys(aggregates)) {
                         const group = aggregates[itemId];
                         const invCard = inventory.find(inv => inv.id === itemId);
@@ -992,7 +936,6 @@
                         }
                     }
 
-                    // Record PO receipt to Firestore
                     const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
                     await setDoc(orderRef, orderRecord);
                     showToast(`Order logged successfully: ${poCode}`);
@@ -1002,7 +945,6 @@
                     return;
                 }
             } else {
-                // local persistent execution path
                 cart.forEach(cartItem => {
                     const invCard = inventory.find(inv => inv.id === cartItem.id);
                     if (invCard) {
@@ -1020,15 +962,12 @@
                 showToast(`Local purchase complete: ${poCode}`);
             }
 
-            // Show Confirmation Invoice
             showView('receipt');
 
-            // Reset shopping cart array
             cart = [];
             updateCartQuantity();
         }
 
-        // Copies generated PO directly to clipboard safely
         function copyPoNumber() {
             const poText = document.getElementById('receipt-po-number').innerText;
             const tempInput = document.createElement("input");
@@ -1040,7 +979,6 @@
             showToast(`Copied ${poText} to clipboard!`);
         }
 
-        // Admin controls
         async function addSingleCard() {
             const name = document.getElementById('admin-name').value;
             const set = document.getElementById('admin-set').value;
@@ -1057,14 +995,9 @@
             }
 
             const colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
-
-            // Calculate auto-incremented database ID
             const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
 
-            const newCard = {
-                id: newId,
-                name, set, type, cmc, colors, price, qty, img
-            };
+            const newCard = { id: newId, name, set, type, cmc, colors, price, qty, img };
 
             if (useFirebase && currentUserState) {
                 try {
@@ -1084,7 +1017,6 @@
                 showToast(`${name} saved to local inventory.`);
             }
 
-            // Reset inputs
             document.getElementById('admin-name').value = '';
             document.getElementById('admin-set').value = '';
             document.getElementById('admin-cmc').value = '';
@@ -1217,10 +1149,8 @@
             document.body.removeChild(link);
         }
 
-        // Trigger active startup auth routine
         initAuth();
 
-        // Bind core utilities back to window scope for HTML click execution
         window.goHome = goHome;
         window.toggleAdvancedSearch = toggleAdvancedSearch;
         window.showView = showView;
