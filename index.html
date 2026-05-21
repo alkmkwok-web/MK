@@ -350,14 +350,27 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global environment bindings
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Global environment bindings with auto-adaptive environment safety
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'magic-kaion-app';
+        let db = null;
+        let auth = null;
+        let useFirebase = false;
 
-        // Core dynamic arrays populated persistently via Firestore
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useFirebase = true;
+            } else {
+                console.warn("Firebase configuration variables not found. Activating localized fallback.");
+            }
+        } catch (error) {
+            console.error("Firebase setup crashed, falling back to local database:", error);
+        }
+
+        // Core dynamic arrays populated persistently via Firestore or Local Storage
         let inventory = [];
         let orders = [];
         let cart = [];
@@ -377,6 +390,10 @@
 
         // Auth Sequence (Priority Compliant)
         const initAuth = async () => {
+            if (!useFirebase) {
+                loadLocalFallback("Offline Mode: Running on local storage database.");
+                return;
+            }
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -384,23 +401,65 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Authentication check failure:", error);
-                showToast("Connection to Auth server failed.", "error");
+                console.error("Authentication check failure, running fallback:", error);
+                loadLocalFallback("Offline Mode: Connected safely to local storage.");
             }
         };
 
-        // Initialize Firestore Sync Subscriptions
-        onAuthStateChanged(auth, async (user) => {
-            currentUserState = user;
-            if (user) {
-                await seedInventoryIfEmpty();
-                setupRealtimeSync();
+        // Fallback engine to load persistently from LocalStorage
+        function loadLocalFallback(msg = "Local test mode active.") {
+            const savedInventory = localStorage.getItem('magic_kaion_inventory');
+            if (savedInventory) {
+                inventory = JSON.parse(savedInventory);
+            } else {
+                inventory = [...seedInventoryDefaults];
+                localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
             }
-        });
+
+            const savedOrders = localStorage.getItem('magic_kaion_orders');
+            if (savedOrders) {
+                orders = JSON.parse(savedOrders);
+            } else {
+                orders = [
+                    {
+                        poCode: 'PO-738291',
+                        date: '5/21/2026, 11:24:15 AM',
+                        items: [
+                            { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', qty: 2, price: 45.50, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
+                            { id: '3', name: 'Lightning Bolt', set: 'M11', qty: 4, price: 3.00, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' }
+                        ],
+                        total: 103.00
+                    }
+                ];
+                localStorage.setItem('magic_kaion_orders', JSON.stringify(orders));
+            }
+
+            // Instantly hide overlay
+            const loader = document.getElementById('loading-overlay');
+            if (loader) loader.classList.add('hidden');
+
+            renderStore();
+            renderAdminList();
+            updateAdminOrdersCount();
+            showToast(msg);
+        }
+
+        // Initialize Firestore Sync Subscriptions
+        if (useFirebase) {
+            onAuthStateChanged(auth, async (user) => {
+                currentUserState = user;
+                if (user) {
+                    await seedInventoryIfEmpty();
+                    setupRealtimeSync();
+                } else {
+                    loadLocalFallback();
+                }
+            });
+        }
 
         // Seed inventory database if document counts return 0
         async function seedInventoryIfEmpty() {
-            if (!currentUserState) return;
+            if (!currentUserState || !useFirebase) return;
             try {
                 const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
                 const querySnapshot = await getDocs(inventoryCol);
@@ -418,7 +477,7 @@
 
         // Realtime sync channels utilizing standard onSnapshot (Compliant with Rule 2)
         function setupRealtimeSync() {
-            if (!currentUserState) return;
+            if (!currentUserState || !useFirebase) return;
 
             const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
             const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
@@ -429,17 +488,16 @@
                 snapshot.forEach(docSnap => {
                     items.push(docSnap.data());
                 });
-                // Sort by ID to preserve consistency
                 inventory = items.sort((a, b) => parseInt(a.id) - parseInt(b.id));
                 
-                // Hide dynamic syncing screen overlay
                 const loader = document.getElementById('loading-overlay');
                 if (loader) loader.classList.add('hidden');
 
                 renderStore();
                 renderAdminList();
             }, (err) => {
-                console.error("Inventory sub snapshot error:", err);
+                console.error("Inventory snapshot error, executing local fallback:", err);
+                loadLocalFallback();
             });
 
             // Orders History Realtime Stream
@@ -448,7 +506,6 @@
                 snapshot.forEach(docSnap => {
                     items.push(docSnap.data());
                 });
-                // Sort by timestamp descending
                 orders = items.sort((a, b) => new Date(b.date) - new Date(a.date));
                 updateAdminOrdersCount();
                 
@@ -456,7 +513,7 @@
                     renderOrderHistoryLogs();
                 }
             }, (err) => {
-                console.error("Orders sub snapshot error:", err);
+                console.error("Orders snapshot error:", err);
             });
         }
 
@@ -607,18 +664,27 @@
             renderStore(filteredData);
         }
 
-        // Test Helper: Reset all quantities to 10 persistently in Firestore
+        // Persistent QTY reset function compatible with Offline & Online environments
         async function resetAllQuantities() {
-            if (!currentUserState) return;
-            try {
-                for (const card of inventory) {
-                    const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
-                    await updateDoc(cardRef, { qty: 10 });
+            if (useFirebase && currentUserState) {
+                try {
+                    for (const card of inventory) {
+                        const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
+                        await updateDoc(cardRef, { qty: 10 });
+                    }
+                    showToast("All inventory stocks reset to 10 in Database.");
+                } catch (err) {
+                    console.error("Error resetting stocks:", err);
+                    showToast("Database connection error while resetting stocks.");
                 }
-                showToast("All inventory stocks reset to 10 in Database.");
-            } catch (err) {
-                console.error("Error resetting stocks:", err);
-                showToast("Database connection error while resetting stocks.");
+            } else {
+                inventory.forEach(card => {
+                    card.qty = 10;
+                });
+                localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
+                renderStore();
+                renderAdminList();
+                showToast("Local stock quantities reset to 10.");
             }
         }
 
@@ -767,6 +833,7 @@
             showToast(`Added ${card.name} to cart.`);
         }
 
+        // Refresh navigation-level badge totals
         function updateCartQuantity() {
             const countDiv = document.getElementById('cart-count');
             if (cart.length > 0) {
@@ -831,90 +898,110 @@
             totalPrice.innerText = `$${runningSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // Checkout Process: Subtract stock, write PO receipt securely to Firestore database
+        // Checkout Process: Subtract stock, write PO receipt safely based on environment
         async function checkoutMock() {
-            if (cart.length === 0 || !currentUserState) return;
+            if (cart.length === 0) return;
 
-            try {
-                // 1. Decrease quantities inside DB collection
-                const aggregates = {};
-                cart.forEach(item => {
-                    if (aggregates[item.id]) {
-                        aggregates[item.id].qty += 1;
-                    } else {
-                        aggregates[item.id] = { card: item, qty: 1 };
-                    }
-                });
-
-                // Deduct stock for each distinct item
-                for (const itemId of Object.keys(aggregates)) {
-                    const group = aggregates[itemId];
-                    const invCard = inventory.find(inv => inv.id === itemId);
-                    if (invCard) {
-                        const newStock = Math.max(0, invCard.qty - group.qty);
-                        const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
-                        await updateDoc(cardRef, { qty: newStock });
-                    }
+            // Prepare grouped checkout summaries
+            const aggregates = {};
+            cart.forEach(item => {
+                if (aggregates[item.id]) {
+                    aggregates[item.id].qty += 1;
+                } else {
+                    aggregates[item.id] = { card: item, qty: 1 };
                 }
+            });
 
-                // 2. Generate custom PO reference
-                const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
-                document.getElementById('receipt-po-number').innerText = poCode;
+            // 1. Generate custom PO reference
+            const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('receipt-po-number').innerText = poCode;
 
-                // 3. Prepare recap elements & receipt list
-                let totalRecapSum = 0;
-                const receiptContainer = document.getElementById('receipt-items');
-                
-                const processedItems = Object.values(aggregates).map(item => {
-                    const subTotal = item.card.price * item.qty;
-                    totalRecapSum += subTotal;
-                    return {
-                        markup: `
-                            <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                                <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
-                                <div class="flex-grow min-width-0">
-                                    <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
-                                    <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
-                                    <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                                </div>
+            // 2. Prepare receipt items visualization Markup
+            let totalRecapSum = 0;
+            const receiptContainer = document.getElementById('receipt-items');
+            
+            const processedItems = Object.values(aggregates).map(item => {
+                const subTotal = item.card.price * item.qty;
+                totalRecapSum += subTotal;
+                return {
+                    markup: `
+                        <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                            <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                            <div class="flex-grow min-width-0">
+                                <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
+                                <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
+                                <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
-                        `,
-                        orderItemRecord: {
-                            id: item.card.id,
-                            name: item.card.name,
-                            set: item.card.set,
-                            qty: item.qty,
-                            price: item.card.price,
-                            img: item.card.img
-                        }
-                    };
-                });
-
-                receiptContainer.innerHTML = processedItems.map(p => p.markup).join('');
-                document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-
-                // 4. Record new PO Receipt logs on Firestore database
-                const orderRecord = {
-                    poCode: poCode,
-                    date: new Date().toLocaleString(),
-                    items: processedItems.map(p => p.orderItemRecord),
-                    total: totalRecapSum
+                        </div>
+                    `,
+                    orderItemRecord: {
+                        id: item.card.id,
+                        name: item.card.name,
+                        set: item.card.set,
+                        qty: item.qty,
+                        price: item.card.price,
+                        img: item.card.img
+                    }
                 };
+            });
 
-                const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
-                await setDoc(orderRef, orderRecord);
+            receiptContainer.innerHTML = processedItems.map(p => p.markup).join('');
+            document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
 
-                // 5. Present Order Receipt screen
-                showView('receipt');
+            const orderRecord = {
+                poCode: poCode,
+                date: new Date().toLocaleString(),
+                items: processedItems.map(p => p.orderItemRecord),
+                total: totalRecapSum
+            };
 
-                // 6. Reset cart state
-                cart = [];
-                updateCartQuantity();
-                showToast(`Order logged successfully: ${poCode}`);
-            } catch (err) {
-                console.error("Purchase execution error:", err);
-                showToast("Failed to process transaction in persistent memory.", "error");
+            if (useFirebase && currentUserState) {
+                try {
+                    // Deduct stock for each distinct item
+                    for (const itemId of Object.keys(aggregates)) {
+                        const group = aggregates[itemId];
+                        const invCard = inventory.find(inv => inv.id === itemId);
+                        if (invCard) {
+                            const newStock = Math.max(0, invCard.qty - group.qty);
+                            const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
+                            await updateDoc(cardRef, { qty: newStock });
+                        }
+                    }
+
+                    // Record PO receipt to Firestore
+                    const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
+                    await setDoc(orderRef, orderRecord);
+                    showToast(`Order logged successfully: ${poCode}`);
+                } catch (err) {
+                    console.error("Firebase purchase error:", err);
+                    showToast("Failed to write purchase to DB.", "error");
+                    return;
+                }
+            } else {
+                // local persistent execution path
+                cart.forEach(cartItem => {
+                    const invCard = inventory.find(inv => inv.id === cartItem.id);
+                    if (invCard) {
+                        invCard.qty = Math.max(0, invCard.qty - 1);
+                    }
+                });
+                orders.unshift(orderRecord);
+
+                localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
+                localStorage.setItem('magic_kaion_orders', JSON.stringify(orders));
+
+                renderStore();
+                renderAdminList();
+                updateAdminOrdersCount();
+                showToast(`Local purchase complete: ${poCode}`);
             }
+
+            // Show Confirmation Invoice
+            showView('receipt');
+
+            // Reset shopping cart array
+            cart = [];
+            updateCartQuantity();
         }
 
         // Copies generated PO directly to clipboard safely
@@ -931,8 +1018,6 @@
 
         // Admin controls
         async function addSingleCard() {
-            if (!currentUserState) return;
-
             const name = document.getElementById('admin-name').value;
             const set = document.getElementById('admin-set').value;
             const type = document.getElementById('admin-type').value;
@@ -957,34 +1042,50 @@
                 name, set, type, cmc, colors, price, qty, img
             };
 
-            try {
-                const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newId);
-                await setDoc(cardRef, newCard);
-
-                document.getElementById('admin-name').value = '';
-                document.getElementById('admin-set').value = '';
-                document.getElementById('admin-cmc').value = '';
-                document.getElementById('admin-price').value = '';
-                document.getElementById('admin-qty').value = '10';
-                document.getElementById('admin-colors').value = '';
-                document.getElementById('admin-img').value = '';
-
-                showToast(`${name} registered persistently with QTY: ${qty}.`);
-            } catch (err) {
-                console.error("Card addition failure:", err);
-                showToast("Database connection error. Unable to save card.", "error");
+            if (useFirebase && currentUserState) {
+                try {
+                    const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newId);
+                    await setDoc(cardRef, newCard);
+                    showToast(`${name} registered persistently.`);
+                } catch (err) {
+                    console.error("Card addition failure:", err);
+                    showToast("Database error saving card.", "error");
+                    return;
+                }
+            } else {
+                inventory.unshift(newCard);
+                localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
+                renderStore();
+                renderAdminList();
+                showToast(`${name} saved to local inventory.`);
             }
+
+            // Reset inputs
+            document.getElementById('admin-name').value = '';
+            document.getElementById('admin-set').value = '';
+            document.getElementById('admin-cmc').value = '';
+            document.getElementById('admin-price').value = '';
+            document.getElementById('admin-qty').value = '10';
+            document.getElementById('admin-colors').value = '';
+            document.getElementById('admin-img').value = '';
         }
 
         async function removeCardFromInventory(id) {
-            if (!currentUserState) return;
-            try {
-                const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
-                await deleteDoc(cardRef);
-                showToast("Item deleted persistently from database.");
-            } catch (err) {
-                console.error("Deletion error:", err);
-                showToast("Failed to delete entry.", "error");
+            if (useFirebase && currentUserState) {
+                try {
+                    const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
+                    await deleteDoc(cardRef);
+                    showToast("Item deleted from database.");
+                } catch (err) {
+                    console.error("Deletion error:", err);
+                    showToast("Failed to delete entry.", "error");
+                }
+            } else {
+                inventory = inventory.filter(c => c.id !== id);
+                localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
+                renderStore();
+                renderAdminList();
+                showToast("Item deleted locally.");
             }
         }
 
@@ -1011,7 +1112,6 @@
         }
 
         async function importInventoryFromCsv(event) {
-            if (!currentUserState) return;
             const file = event.target.files[0];
             if (!file) return;
 
@@ -1044,21 +1144,27 @@
                 }
 
                 if (newInventory.length > 0) {
-                    try {
-                        // 1. Delete previous inventory documents on database
-                        for (const oldCard of inventory) {
-                            const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
-                            await deleteDoc(oldCardRef);
+                    if (useFirebase && currentUserState) {
+                        try {
+                            for (const oldCard of inventory) {
+                                const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
+                                await deleteDoc(oldCardRef);
+                            }
+                            for (const newCard of newInventory) {
+                                const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
+                                await setDoc(newCardRef, newCard);
+                            }
+                            showToast(`Imported ${newInventory.length} listings directly to database.`);
+                        } catch (err) {
+                            console.error("Bulk upload writing error:", err);
+                            showToast("Failed to overwrite database.", "error");
                         }
-                        // 2. Insert newly imported CSV documents
-                        for (const newCard of newInventory) {
-                            const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
-                            await setDoc(newCardRef, newCard);
-                        }
-                        showToast(`Successfully imported ${newInventory.length} persistent listings.`);
-                    } catch (err) {
-                        console.error("Bulk upload writing error:", err);
-                        showToast("Failed to overwrite database.", "error");
+                    } else {
+                        inventory = newInventory;
+                        localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
+                        renderStore();
+                        renderAdminList();
+                        showToast(`Locally imported ${newInventory.length} CSV listings.`);
                     }
                 } else {
                     showToast('Failure processing CSV structure.');
