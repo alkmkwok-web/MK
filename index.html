@@ -394,7 +394,7 @@
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id || crypto.randomUUID()), card);
             };
 
-        } catch (err) {
+        catch (err) {
             console.error("Firebase Init Error:", err);
             loaderStatus.innerText = "Initialization failed.";
         }
