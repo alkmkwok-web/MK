@@ -100,7 +100,7 @@
                     <span class="text-xl">🏠</span>Browse
                 </button>
                 <button id="nav-search" onclick="toggleAdvancedSearch()" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">🔍</span>Search
+                    <span class="text-xl">🔍</span>Advanced Search
                 </button>
                 <button id="nav-admin" onclick="showView('admin')" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
                     <span class="text-xl">⚙️</span>Admin
@@ -199,9 +199,40 @@
                     <span id="cart-total-price" class="text-amber-500 text-2xl font-black">$0.00</span>
                 </div>
                 <button onclick="checkoutMock()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40">
-                    Proceed to Secure Payment
+                    Secured Checkout
                 </button>
             </div>
+        </div>
+
+        <!-- Order Confirmed View (Receipt) -->
+        <div id="view-receipt" class="hidden space-y-6">
+            <div class="text-center py-6 bg-slate-800/50 rounded-2xl border border-slate-800 p-6 shadow-xl">
+                <span class="text-5xl block mb-4">🎉</span>
+                <h2 class="text-2xl font-black text-white">Order Confirmed!</h2>
+                <p class="text-slate-300 mt-3 text-sm leading-relaxed max-w-md mx-auto">
+                    Thank you for ordering from us, please continue in our original communication channel with this purchase order number:
+                </p>
+                <div onclick="copyPoNumber()" class="my-5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl py-4 px-6 inline-block font-mono text-xl text-amber-500 font-black cursor-pointer shadow-inner active:scale-95 transition-all select-all" title="Click to copy PO number">
+                    <span id="receipt-po-number">PO-123456</span>
+                </div>
+                <p class="text-[10px] text-slate-500">☝️ Click the code block to copy the PO number</p>
+            </div>
+
+            <!-- Receipt Order Items Recap -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Order Recap</h3>
+                <div id="receipt-items" class="space-y-2.5">
+                    <!-- Recap Items Render Dynamically -->
+                </div>
+                <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
+                    <span class="text-slate-400 font-bold text-sm">Total Value Settled:</span>
+                    <span id="receipt-total" class="text-amber-500 text-xl font-black">$0.00</span>
+                </div>
+            </div>
+
+            <button onclick="goHome()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 border border-slate-700 shadow-lg">
+                Return to Marketplace
+            </button>
         </div>
 
         <div id="view-admin" class="hidden space-y-6">
@@ -210,8 +241,15 @@
                 <p class="text-xs text-slate-500 mt-1">Manage, update, and bulk upload card data securely.</p>
             </div>
 
+            <!-- CSV Actions Container -->
             <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
-                <h3 class="font-bold text-white text-sm">Spreadsheet Synchronization</h3>
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white text-sm">Spreadsheet Synchronization</h3>
+                    <!-- Testing Option: Reset Quantity of each item to 10 -->
+                    <button onclick="resetAllQuantities()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition-colors shadow">
+                        🔄 Test: Reset Qty to 10
+                    </button>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">
                         📥 Import CSV Data
@@ -221,9 +259,10 @@
                     </button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
-                <p class="text-[10px] text-slate-500 italic">Expected CSV format: Name, Set, Type, CMC, Price, ImageURL</p>
+                <p class="text-[10px] text-slate-500 italic">Expected CSV format: Name, Set, Type, CMC, Price, ImageURL, Qty</p>
             </div>
 
+            <!-- Individual Add Card Form -->
             <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 space-y-3">
                 <h3 class="font-bold text-white text-sm">Add New Singles Entry</h3>
                 <div class="space-y-2">
@@ -241,9 +280,10 @@
                         </select>
                         <input id="admin-cmc" type="number" placeholder="Mana Value" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input id="admin-price" type="number" placeholder="Price (USD)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
-                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                    <div class="grid grid-cols-3 gap-2">
+                        <input id="admin-price" type="number" placeholder="Price (USD)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                        <input id="admin-qty" type="number" placeholder="Qty" value="10" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                     </div>
                     <input id="admin-img" type="text" placeholder="Scryfall or Custom Image URL" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                 </div>
@@ -252,6 +292,7 @@
                 </button>
             </div>
 
+            <!-- Current Inventory Management List -->
             <div class="space-y-3">
                 <h3 class="font-black text-white text-sm uppercase tracking-wider">Current Stock List</h3>
                 <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -259,6 +300,9 @@
             </div>
         </div>
     </main>
+
+    <!-- Custom Floating Toast Alerts -->
+    <div id="toast-notice" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-2 opacity-0"></div>
 
     <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-200 opacity-0">
         <div class="relative max-w-sm w-full flex flex-col items-center dynamic-modal-content" onclick="event.stopPropagation()">
@@ -272,12 +316,12 @@
 
     <script>
         let inventory = [
-            { id: '1', name: 'Black Lotus', set: 'Alpha', type: 'Artifact', cmc: '0', colors: ['C'], price: 45000, img: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
-            { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', type: 'Planeswalker', cmc: '4', colors: ['U'], price: 45.50, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
-            { id: '3', name: 'Lightning Bolt', set: 'M11', type: 'Instant', cmc: '1', colors: ['R'], price: 3.00, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' },
-            { id: '4', name: 'Birds of Paradise', set: 'Ravnica', type: 'Creature', cmc: '1', colors: ['G'], price: 12.00, img: 'https://cards.scryfall.io/normal/front/f/e/fe756e44-b5b6-4dd6-820a-8bf38099238e.jpg' },
-            { id: '5', name: 'Teferi, Hero of Dominaria', set: 'Dominaria', type: 'Planeswalker', cmc: '5', colors: ['W', 'U'], price: 28.00, img: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg' },
-            { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
+            { id: '1', name: 'Black Lotus', set: 'Alpha', type: 'Artifact', cmc: '0', colors: ['C'], price: 45000, qty: 10, img: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
+            { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', type: 'Planeswalker', cmc: '4', colors: ['U'], price: 45.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
+            { id: '3', name: 'Lightning Bolt', set: 'M11', type: 'Instant', cmc: '1', colors: ['R'], price: 3.00, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/e/ce711943-c1a1-43a0-8b89-8d169cfb8e06.jpg' },
+            { id: '4', name: 'Birds of Paradise', set: 'Ravnica', type: 'Creature', cmc: '1', colors: ['G'], price: 12.00, qty: 10, img: 'https://cards.scryfall.io/normal/front/f/e/fe756e44-b5b6-4dd6-820a-8bf38099238e.jpg' },
+            { id: '5', name: 'Teferi, Hero of Dominaria', set: 'Dominaria', type: 'Planeswalker', cmc: '5', colors: ['W', 'U'], price: 28.00, qty: 10, img: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg' },
+            { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
         ];
 
         let cart = [];
@@ -288,6 +332,23 @@
             renderStore();
             updateNavigationIndicators();
         };
+
+        // Custom Overlay Toast Helper
+        function showToast(message) {
+            const toast = document.getElementById('toast-notice');
+            toast.innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
 
         // Modal Zoom Logic Engine
         function openCardModal(cardId) {
@@ -301,7 +362,6 @@
             modalImg.src = card.img;
             modalCaption.innerText = `${card.name} — ${card.set} (${card.type})`;
 
-            // Display and fade in seamlessly
             modal.classList.remove('hidden');
             document.body.classList.add('modal-open');
             setTimeout(() => {
@@ -313,7 +373,6 @@
             const modal = document.getElementById('card-modal');
             modal.classList.add('opacity-0');
             document.body.classList.remove('modal-open');
-            // Wait for fade transition before hiding component layout completely
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 200);
@@ -324,6 +383,7 @@
             document.getElementById('view-browse').classList.add('hidden');
             document.getElementById('view-cart').classList.add('hidden');
             document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-receipt').classList.add('hidden');
             document.getElementById('hero-search').classList.add('hidden');
             
             if (viewName === 'browse') {
@@ -335,6 +395,8 @@
             } else if (viewName === 'admin') {
                 document.getElementById('view-admin').classList.remove('hidden');
                 renderAdminList();
+            } else if (viewName === 'receipt') {
+                document.getElementById('view-receipt').classList.remove('hidden');
             }
             updateNavigationIndicators();
         }
@@ -417,6 +479,16 @@
             renderStore(filteredData);
         }
 
+        // Test Helper: Reset all quantities to 10
+        function resetAllQuantities() {
+            inventory.forEach(card => {
+                card.qty = 10;
+            });
+            renderStore();
+            renderAdminList();
+            showToast("Test Utility: All stock quantities reset to 10.");
+        }
+
         function renderStore(data = inventory) {
             const storeDisplay = document.getElementById('store-display');
             if (data.length === 0) {
@@ -439,6 +511,13 @@
                     return `<span class="inline-block w-2.5 h-2.5 rounded-full ${colorClass}"></span>`;
                 }).join('');
 
+                const isOutOfStock = card.qty <= 0;
+                const buttonMarkup = isOutOfStock 
+                    ? `<button disabled class="bg-slate-800 text-slate-500 px-5 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
+                    : `<button onclick="addToCart('${card.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add</button>`;
+
+                const stockColor = card.qty > 3 ? 'text-emerald-500' : (card.qty > 0 ? 'text-amber-500' : 'text-red-500');
+
                 return `
                     <div class="card-row">
                         <img src="${card.img}" onerror="this.src='https://cards.scryfall.io/back.png'" 
@@ -455,6 +534,7 @@
                                 <div class="mt-1 flex items-center gap-2">
                                     <span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[9px] text-slate-400 rounded uppercase font-bold tracking-wider">${card.type}</span>
                                     <span class="text-[9px] text-slate-500">CMC: ${card.cmc}</span>
+                                    <span class="text-[9px] font-black ${stockColor}">QTY: ${card.qty}</span>
                                 </div>
                             </div>
                             
@@ -462,10 +542,7 @@
                                 <span class="text-amber-500 font-black text-lg">
                                     $${card.price.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                 </span>
-                                <button onclick="addToCart('${card.id}')" 
-                                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">
-                                    Add
-                                </button>
+                                ${buttonMarkup}
                             </div>
                         </div>
                     </div>
@@ -475,8 +552,19 @@
 
         function addToCart(id) {
             const card = inventory.find(c => c.id === id);
+            if (!card) return;
+
+            // Count occurrences already in the cart
+            const currentInCart = cart.filter(item => item.id === id).length;
+
+            if (currentInCart >= card.qty) {
+                showToast(`Unable to add. Only ${card.qty} copy/copies left in stock!`);
+                return;
+            }
+
             cart.push(card);
             updateCartQuantity();
+            showToast(`Added ${card.name} to cart.`);
         }
 
         function updateCartQuantity() {
@@ -490,15 +578,18 @@
         }
 
         function removeFromCart(index) {
+            const name = cart[index].name;
             cart.splice(index, 1);
             updateCartQuantity();
             renderCart();
+            showToast(`Removed ${name} from cart.`);
         }
 
         function clearCart() {
             cart = [];
             updateCartQuantity();
             renderCart();
+            showToast('Cleared shopping cart.');
         }
 
         function renderCart() {
@@ -540,18 +631,86 @@
             totalPrice.innerText = `$${runningSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
+        // Checkout Process: Subtract stock, generate Purchase Order (PO) & show recap layout
         function checkoutMock() {
-            alert(`Purchase successful! You have secured ${cart.length} rare MTG singles.`);
-            clearCart();
-            goHome();
+            if (cart.length === 0) return;
+
+            // 1. Decrease QTY in our inventory state based on cart items
+            cart.forEach(cartItem => {
+                const stockItem = inventory.find(invItem => invItem.id === cartItem.id);
+                if (stockItem && stockItem.qty > 0) {
+                    stockItem.qty -= 1; // Deduct one unit of stock
+                }
+            });
+
+            // 2. Generate PO number
+            const poCode = "PO-" + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('receipt-po-number').innerText = poCode;
+
+            // 3. Aggregate cart elements to make a clean item-grouped recap
+            const aggregates = {};
+            cart.forEach(item => {
+                if (aggregates[item.id]) {
+                    aggregates[item.id].qty += 1;
+                } else {
+                    aggregates[item.id] = { card: item, qty: 1 };
+                }
+            });
+
+            // 4. Render elements inside Receipt container
+            let totalRecapSum = 0;
+            const receiptContainer = document.getElementById('receipt-items');
+            
+            receiptContainer.innerHTML = Object.values(aggregates).map(item => {
+                const subTotal = item.card.price * item.qty;
+                totalRecapSum += subTotal;
+                return `
+                    <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                        <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                        <div class="flex-grow min-width-0">
+                            <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
+                            <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
+                            <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('receipt-total').innerText = `$${totalRecapSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            // 5. Update storefront and admin dashboard displays immediately
+            renderStore();
+            renderAdminList();
+
+            // 6. Switch visible screen to receipt
+            showView('receipt');
+
+            // 7. Clean Cart memory
+            cart = [];
+            updateCartQuantity();
+            showToast(`Order Confirmed: ${poCode}`);
         }
 
+        // Copies generated PO directly to clipboard safely
+        function copyPoNumber() {
+            const poText = document.getElementById('receipt-po-number').innerText;
+            const tempInput = document.createElement("input");
+            tempInput.value = poText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast(`Copied ${poText} to clipboard!`);
+        }
+
+        // Admin controls
         function addSingleCard() {
             const name = document.getElementById('admin-name').value;
             const set = document.getElementById('admin-set').value;
             const type = document.getElementById('admin-type').value;
             const cmc = document.getElementById('admin-cmc').value || '0';
             const price = parseFloat(document.getElementById('admin-price').value) || 0.00;
+            const qty = parseInt(document.getElementById('admin-qty').value) || 10;
             const colorsInput = document.getElementById('admin-colors').value;
             const img = document.getElementById('admin-img').value || 'https://cards.scryfall.io/back.png';
 
@@ -564,20 +723,22 @@
 
             const newCard = {
                 id: (inventory.length + 1).toString(),
-                name, set, type, cmc, colors, price, img
+                name, set, type, cmc, colors, price, qty, img
             };
 
             inventory.unshift(newCard);
             renderAdminList();
+            renderStore();
             
             document.getElementById('admin-name').value = '';
             document.getElementById('admin-set').value = '';
             document.getElementById('admin-cmc').value = '';
             document.getElementById('admin-price').value = '';
+            document.getElementById('admin-qty').value = '10';
             document.getElementById('admin-colors').value = '';
             document.getElementById('admin-img').value = '';
             
-            alert(`${name} successfully registered.`);
+            showToast(`${name} successfully registered with QTY: ${qty}.`);
         }
 
         function removeCardFromInventory(id) {
@@ -594,7 +755,7 @@
                         <img src="${card.img}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
                         <div>
                             <h4 class="text-white text-xs font-bold">${card.name}</h4>
-                            <p class="text-[10px] text-slate-500">${card.set} • $${card.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                            <p class="text-[10px] text-slate-500">${card.set} • $${card.price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.qty}</p>
                         </div>
                     </div>
                     <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors">
@@ -631,10 +792,11 @@
                         const price = parseFloat(matches[4].replace(/"/g, '')) || 0.00;
                         const colors = matches[5] ? matches[5].replace(/"/g, '').toUpperCase().split('|').map(c => c.trim()) : ['C'];
                         const img = matches[6] ? matches[6].replace(/"/g, '').trim() : 'https://cards.scryfall.io/back.png';
+                        const qty = matches[7] ? parseInt(matches[7].replace(/"/g, '')) || 10 : 10;
 
                         newInventory.push({
                             id: (newInventory.length + Date.now()).toString(),
-                            name, set, type, cmc, colors, price, img
+                            name, set, type, cmc, colors, price, qty, img
                         });
                     }
                 }
@@ -643,9 +805,9 @@
                     inventory = newInventory;
                     renderStore();
                     renderAdminList();
-                    alert(`Successfully imported ${newInventory.length} listings.`);
+                    showToast(`Successfully imported ${newInventory.length} listings with custom stock levels.`);
                 } else {
-                    alert('Failure processing CSV.');
+                    showToast('Failure processing CSV.');
                 }
             };
             reader.readAsText(file);
@@ -653,13 +815,13 @@
 
         function exportInventoryToCsv() {
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Name,Set,Type,CMC,Price,Colors,ImageURL\n";
+            csvContent += "Name,Set,Type,CMC,Price,Colors,ImageURL,QTY\n";
 
             inventory.forEach(card => {
                 const name = `"${card.name.replace(/"/g, '""')}"`;
                 const set = `"${card.set.replace(/"/g, '""')}"`;
                 const colors = card.colors ? `"${card.colors.join('|')}"` : "C";
-                csvContent += `${name},${set},${card.type},${card.cmc},${card.price},${colors},${card.img}\n`;
+                csvContent += `${name},${set},${card.type},${card.cmc},${card.price},${colors},${card.img},${card.qty}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
