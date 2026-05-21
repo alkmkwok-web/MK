@@ -371,33 +371,28 @@
             db = getFirestore(app);
             
             // 3. AUTH AND DATA SYNC
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    const invRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
-                    onSnapshot(invRef, (snapshot) => {
-                        const inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        renderStore(inventory);
-                        document.getElementById('loading-overlay').classList.add('hidden');
-                    }, (err) => {
-                        console.error("Firestore Snapshot Error:", err);
-                        loaderStatus.innerText = "Error syncing data.";
-                    });
-                } else {
-                    signInAnonymously(auth).catch(e => {
-                        console.error("Auth error:", e);
-                        loaderStatus.innerText = "Auth failed.";
-                    });
-                }
-            });
+          onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const invRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+                onSnapshot(invRef, (snapshot) => {
+                    const inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    if (window.renderStore) window.renderStore(inventory);
+                    const loader = document.getElementById('loading-overlay');
+                    if (loader) loader.classList.add('hidden');
+                }, (err) => console.error("Snapshot Error:", err));
+            } else {
+                signInAnonymously(auth).catch(e => console.error("Auth Error:", e));
+            }
+        });
 
-            window.saveCard = async (card) => {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id || crypto.randomUUID()), card);
-            };
+        // 3. Define functions and attach to window
+        window.saveCard = async (card) => {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id || crypto.randomUUID()), card);
+        };
 
-        catch (err) {
-            console.error("Firebase Init Error:", err);
-            loaderStatus.innerText = "Initialization failed.";
-        }
+    } catch (err) {
+        console.error("Initialization Failed:", err);
+    }
 
         // Core dynamic arrays populated persistently via Firestore or Local Storage
         let inventory = [];
