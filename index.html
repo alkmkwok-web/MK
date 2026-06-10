@@ -745,7 +745,7 @@
                 const cardColors = card.Colors;
 
                 const matchesSearch = cardName.includes(searchQuery) || cardSet.includes(searchQuery);
-                const matchesType = typeFilter === 'all' || cardType === typeFilter;
+                const matchesType = typeFilter === 'all' || cardType.includes(typeFilter);
                 
                 let matchesCmc = true;
                 if (cmcFilter !== 'any') {
@@ -763,6 +763,30 @@
             // Reset dynamic scrolling offset on queries change
             displayLimit = 20; 
             renderStore(filteredData);
+        }
+
+        function renderTypeBadges(rawType) {
+            if (!rawType) return '';
+            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
+            const mainTypes = rawType.split('—')[0].split('-')[0].trim();
+            const words = mainTypes.split(/\s+/);
+            
+            return words.map(word => {
+                const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
+                if (!cleanWord) return '';
+                
+                // Assign beautiful, contextual color styles to different magic card types
+                let badgeStyle = "bg-slate-900/60 border-slate-800 text-slate-400";
+                if (cleanWord === 'creature') badgeStyle = "bg-amber-950/40 border-amber-800/60 text-amber-300";
+                if (cleanWord === 'artifact') badgeStyle = "bg-sky-950/40 border-sky-800/60 text-sky-300";
+                if (cleanWord === 'enchantment') badgeStyle = "bg-purple-950/40 border-purple-800/60 text-purple-300";
+                if (cleanWord === 'land') badgeStyle = "bg-emerald-950/40 border-emerald-800/60 text-emerald-300";
+                if (cleanWord === 'planeswalker') badgeStyle = "bg-rose-950/40 border-rose-800/60 text-rose-300";
+                if (cleanWord === 'legendary') badgeStyle = "bg-yellow-950/40 border-yellow-800/60 text-yellow-300";
+                if (cleanWord === 'instant' || cleanWord === 'sorcery') badgeStyle = "bg-indigo-950/40 border-indigo-800/60 text-indigo-300";
+
+                return `<span class="inline-block px-1.5 py-0.5 border text-[8px] rounded uppercase font-bold tracking-wider ${badgeStyle}">${word}</span>`;
+            }).join(' ');
         }
 
         async function resetAllQuantities() {
@@ -948,7 +972,7 @@
                                 <p class="text-slate-500 text-[10px] leading-none truncate" title="${card.Set}">${card.Set}</p>
                                 
                                 <div class="flex flex-wrap items-center gap-1">
-                                    <span class="inline-block px-1 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-slate-400 rounded uppercase font-bold tracking-wider">${card.Type}</span>
+                                    ${renderTypeBadges(card.Type)}
                                     <span class="text-[8px] text-slate-500">CMC:${card.CMC}</span>
                                     <span class="text-[9px] font-black ${stockColor}">QTY:${card.Qty}</span>
                                 </div>
