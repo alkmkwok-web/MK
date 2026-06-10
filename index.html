@@ -195,8 +195,7 @@
     <main id="main-content" class="px-4 pb-24 max-w-2xl mx-auto">
         
         <div id="view-browse" class="space-y-4">
-            <div id="store-display" class="space-y-3.5">
-                </div>
+            <div id="store-display" class="space-y-3.5"></div>
         </div>
 
         <div id="view-cart" class="hidden space-y-6">
@@ -206,8 +205,7 @@
                     🗑️ Clear All Items
                 </button>
             </div>
-            <div id="cart-display" class="space-y-3">
-                </div>
+            <div id="cart-display" class="space-y-3"></div>
             <div id="cart-empty-message" class="text-center py-12 text-slate-500 hidden">
                 <span class="text-4xl block mb-2">🛒</span>
                 Your cart is empty. Start browsing our rare collectibles!
@@ -244,9 +242,7 @@
             <!-- Receipt Order Items Recap -->
             <div class="space-y-3">
                 <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Order Recap</h3>
-                <div id="receipt-items" class="space-y-2.5">
-                    <!-- Recap Items Render Dynamically -->
-                </div>
+                <div id="receipt-items" class="space-y-2.5"></div>
                 <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
                     <span class="text-slate-400 font-bold text-sm">Total Value Settled:</span>
                     <span id="receipt-total" class="text-amber-500 text-xl font-black">$0.00</span>
@@ -283,13 +279,13 @@
                             📤 Export CSV Data
                         </button>
                     </div>
-                    <!-- Order History Button (New requested feature) -->
+                    <!-- Order History Button -->
                     <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
                         📋 View Order History Logs (<span id="admin-orders-count">0</span>)
                     </button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
-                <p class="text-[10px] text-slate-500 italic">Expected CSV format: Name, Set, Type, CMC, Price, ImageURL, Qty</p>
+                <p class="text-[10px] text-slate-500 italic">Expected CSV format supports standard formats or extended unique schema structures dynamically.</p>
             </div>
 
             <!-- Order History List Panel -->
@@ -300,9 +296,7 @@
                     </h3>
                     <button onclick="toggleOrderHistory()" class="text-xs text-slate-400 hover:text-white">Close</button>
                 </div>
-                <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1">
-                    <!-- Historical orders render here -->
-                </div>
+                <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1"></div>
             </div>
 
             <!-- Individual Add Card Form -->
@@ -338,8 +332,7 @@
             <!-- Current Inventory Management List -->
             <div class="space-y-3">
                 <h3 class="font-black text-white text-sm uppercase tracking-wider">Current Stock List</h3>
-                <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
-                    </div>
+                <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
             </div>
         </div>
     </main>
@@ -357,13 +350,12 @@
         </div>
     </div>
 
-    <!-- Firebase modular setup configured with your manual credentials -->
+    <!-- Firebase modular setup configured with manual credentials -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your direct web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0",
             authDomain: "magic-kion.firebaseapp.com",
@@ -380,7 +372,6 @@
         let useFirebase = false;
 
         try {
-            // Priority check for environment config, fallback to your hardcoded one
             const config = (typeof __firebase_config !== 'undefined' && __firebase_config) 
                 ? JSON.parse(__firebase_config) 
                 : firebaseConfig;
@@ -404,7 +395,6 @@
         let activeView = 'browse';
         let currentUserState = null;
 
-        // Clean static default list for first installation database seeding
         const seedInventoryDefaults = [
             { id: '1', name: 'Black Lotus', set: 'Alpha', type: 'Artifact', cmc: '0', colors: ['C'], price: 45000, qty: 10, img: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
             { id: '2', name: 'Jace, the Mind Sculptor', set: 'Worldwake', type: 'Planeswalker', cmc: '4', colors: ['U'], price: 45.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg' },
@@ -414,7 +404,6 @@
             { id: '6', name: 'Damnation', set: 'Planar Chaos', type: 'Sorcery', cmc: '4', colors: ['B'], price: 19.50, qty: 10, img: 'https://cards.scryfall.io/normal/front/a/c/adf95709-4d39-47e2-9658-9744c4f3447f.jpg' }
         ];
 
-        // Routine auth system initialization
         const initAuth = async () => {
             if (!useFirebase) {
                 loadLocalFallback("Offline Mode: Running on browser fallback storage.");
@@ -475,7 +464,7 @@
                 await seedInventoryIfEmpty();
                 setupRealtimeSync();
             } else if (useFirebase && !user) {
-                // Auth handshake hasn't resolved
+                // waiting resolution
             } else {
                 loadLocalFallback();
             }
@@ -504,7 +493,6 @@
             const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
             const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
 
-            // Listen directly to store stock levels
             onSnapshot(inventoryCol, (snapshot) => {
                 const items = [];
                 snapshot.forEach(docSnap => {
@@ -522,17 +510,14 @@
                 loadLocalFallback("Subscription error, recovered with local fallback.");
             });
 
-            // Listen directly to orders history logs
             onSnapshot(ordersCol, (snapshot) => {
                 const items = [];
                 snapshot.forEach(docSnap => {
                     items.push(docSnap.data());
                 });
-                // Sort by date newest first
                 orders = items.sort((a, b) => new Date(b.date) - new Date(a.date));
                 updateAdminOrdersCount();
                 
-                // If admin history panel is active, refresh the UI elements immediately
                 if (activeView === 'admin' && !document.getElementById('admin-orders-panel').classList.contains('hidden')) {
                     renderOrderHistoryLogs();
                 }
@@ -541,7 +526,6 @@
             });
         }
 
-        // Custom Overlay Toast Helper
         function showToast(message) {
             const toast = document.getElementById('toast-notice');
             toast.innerText = message;
@@ -558,7 +542,6 @@
             }, 3000);
         }
 
-        // Modal Zoom Logic Engine
         function openCardModal(cardId) {
             const card = inventory.find(c => c.id === cardId);
             if (!card) return;
@@ -567,8 +550,8 @@
             const modalImg = document.getElementById('modal-card-img');
             const modalCaption = document.getElementById('modal-card-caption');
 
-            modalImg.src = card.img;
-            modalCaption.innerText = `${card.name} — ${card.set} (${card.type})`;
+            modalImg.src = card.img || card.ImageURL || 'https://cards.scryfall.io/back.png';
+            modalCaption.innerText = `${card.name || card.Name || 'Unknown Card'} — ${card.set || card.Set || 'N/A'}`;
 
             modal.classList.remove('hidden');
             document.body.classList.add('modal-open');
@@ -669,17 +652,23 @@
             const cmcFilter = document.getElementById('filter-cmc').value;
 
             const filteredData = inventory.filter(card => {
-                const matchesSearch = card.name.toLowerCase().includes(searchQuery) || card.set.toLowerCase().includes(searchQuery);
-                const matchesType = typeFilter === 'all' || card.type.toLowerCase() === typeFilter;
+                const cardName = (card.name || card.Name || '').toLowerCase();
+                const cardSet = (card.set || card.Set || '').toLowerCase();
+                const cardType = (card.type || card.Type || '').toLowerCase();
+                const cardCmc = card.cmc !== undefined ? card.cmc : (card.CMC !== undefined ? card.CMC : '0');
+                const cardColors = card.colors || card.Colors || [];
+
+                const matchesSearch = cardName.includes(searchQuery) || cardSet.includes(searchQuery);
+                const matchesType = typeFilter === 'all' || cardType === typeFilter;
                 
                 let matchesCmc = true;
                 if (cmcFilter !== 'any') {
-                    matchesCmc = cmcFilter === '7+' ? parseInt(card.cmc) >= 7 : card.cmc.toString() === cmcFilter;
+                    matchesCmc = cmcFilter === '7+' ? parseInt(cardCmc) >= 7 : cardCmc.toString() === cmcFilter;
                 }
 
                 let matchesColors = true;
                 if (selectedColors.length > 0) {
-                    matchesColors = selectedColors.some(c => card.colors && card.colors.includes(c));
+                    matchesColors = selectedColors.some(c => cardColors.includes(c));
                 }
 
                 return matchesSearch && matchesType && matchesCmc && matchesColors;
@@ -688,7 +677,6 @@
             renderStore(filteredData);
         }
 
-        // Stock quantity testing utility
         async function resetAllQuantities() {
             if (useFirebase && currentUserState) {
                 try {
@@ -703,7 +691,8 @@
                 }
             } else {
                 inventory.forEach(card => {
-                    card.qty = 10;
+                    if (card.qty !== undefined) card.qty = 10;
+                    if (card.QTY !== undefined) card.QTY = 10;
                 });
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                 renderStore();
@@ -712,7 +701,6 @@
             }
         }
 
-        // Toggles visibility of Order History Logs Panel in Admin
         function toggleOrderHistory() {
             const panel = document.getElementById('admin-orders-panel');
             panel.classList.toggle('hidden');
@@ -728,7 +716,6 @@
             }
         }
 
-        // Renders aggregated historical orders with order date/time and purchased items
         function renderOrderHistoryLogs() {
             const listContainer = document.getElementById('admin-orders-list');
             if (orders.length === 0) {
@@ -739,10 +726,10 @@
             listContainer.innerHTML = orders.map(order => {
                 const itemsMarkup = order.items.map(item => `
                     <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
-                        <img src="${item.img}" onclick="openCardModal('${item.id}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
+                        <img src="${item.img || item.ImageURL || 'https://cards.scryfall.io/back.png'}" onclick="openCardModal('${item.id}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
                         <div class="min-width-0 flex-grow">
                             <p class="text-white text-[11px] font-bold truncate">${item.name}</p>
-                            <p class="text-[9px] text-slate-500">${item.set} • Qty: ${item.qty} • $${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                            <p class="text-[9px] text-slate-500">${item.set || ''} • Qty: ${item.qty} • $${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
                         </div>
                     </div>
                 `).join('');
@@ -769,7 +756,6 @@
             }).join('');
         }
 
-        // Utility to quickly copy specific orders directly
         function copySpecificPo(poCode) {
             const tempInput = document.createElement("input");
             tempInput.value = poCode;
@@ -792,7 +778,8 @@
             }
 
             storeDisplay.innerHTML = data.map(card => {
-                const colorsDisplay = (card.colors || []).map(c => {
+                const cardColors = card.colors || card.Colors || [];
+                const colorsDisplay = cardColors.map(c => {
                     let colorClass = 'bg-slate-500';
                     if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
                     if (c === 'U') colorClass = 'bg-blue-600 text-white';
@@ -802,36 +789,52 @@
                     return `<span class="inline-block w-2.5 h-2.5 rounded-full ${colorClass}"></span>`;
                 }).join('');
 
-                const isOutOfStock = card.qty <= 0;
+                const currentQty = card.qty !== undefined ? card.qty : (card.QTY !== undefined ? card.QTY : 0);
+                const currentPrice = card.price !== undefined ? card.price : (card.Price !== undefined ? card.Price : 0.00);
+                const currentName = card.name || card.Name || 'Unnamed Card';
+                const currentSet = card.set || card.Set || 'Unknown Set';
+                const currentType = card.type || card.Type || 'Unknown Type';
+                const currentCmc = card.cmc !== undefined ? card.cmc : (card.CMC !== undefined ? card.CMC : '0');
+                const currentImg = card.img || card.ImageURL || 'https://cards.scryfall.io/back.png';
+
+                const isOutOfStock = currentQty <= 0;
                 const buttonMarkup = isOutOfStock 
                     ? `<button disabled class="bg-slate-800 text-slate-500 px-5 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
                     : `<button onclick="addToCart('${card.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add</button>`;
 
-                const stockColor = card.qty > 3 ? 'text-emerald-500' : (card.qty > 0 ? 'text-amber-500' : 'text-red-500');
+                const stockColor = currentQty > 3 ? 'text-emerald-500' : (currentQty > 0 ? 'text-amber-500' : 'text-red-500');
+
+                // Dynamic extraction logic for completely unknown schema variants added via custom CSV lines
+                const coreKeys = ['id', 'name', 'set', 'type', 'cmc', 'colors', 'price', 'qty', 'img', 'ImageURL', 'Name', 'Set', 'Type', 'Price', 'Colors', 'QTY', 'CMC'];
+                const extraBadges = Object.keys(card)
+                    .filter(key => !coreKeys.includes(key))
+                    .map(key => `<span class="inline-block px-1.5 py-0.5 bg-slate-800 text-[9px] text-indigo-300 rounded uppercase font-medium">${key}: ${card[key]}</span>`)
+                    .join('');
 
                 return `
                     <div class="card-row">
-                        <img src="${card.img}" onerror="this.src='https://cards.scryfall.io/back.png'" 
+                        <img src="${currentImg}" onerror="this.src='https://cards.scryfall.io/back.png'" 
                              onclick="openCardModal('${card.id}')"
                              class="w-20 h-28 object-cover rounded-lg shadow-md flex-shrink-0 bg-slate-800 cursor-zoom-in active:scale-95 transition-transform">
                         
                         <div class="card-details">
                             <div class="space-y-1 cursor-pointer" onclick="openCardModal('${card.id}')">
                                 <div class="flex justify-between items-start gap-1">
-                                    <h3 class="text-white font-bold text-sm leading-tight truncate max-w-[200px] sm:max-w-xs hover:text-indigo-400 transition-colors">${card.name}</h3>
+                                    <h3 class="text-white font-bold text-sm leading-tight truncate max-w-[200px] sm:max-w-xs hover:text-indigo-400 transition-colors">${currentName}</h3>
                                     <div class="flex gap-1 items-center flex-shrink-0">${colorsDisplay}</div>
                                 </div>
-                                <p class="text-slate-500 text-[11px] leading-none">${card.set}</p>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[9px] text-slate-400 rounded uppercase font-bold tracking-wider">${card.type}</span>
-                                    <span class="text-[9px] text-slate-500">CMC: ${card.cmc}</span>
-                                    <span class="text-[9px] font-black ${stockColor}">QTY: ${card.qty}</span>
+                                <p class="text-slate-500 text-[11px] leading-none">${currentSet}</p>
+                                <div class="mt-1 flex flex-wrap items-center gap-2">
+                                    <span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[9px] text-slate-400 rounded uppercase font-bold tracking-wider">${currentType}</span>
+                                    <span class="text-[9px] text-slate-500">CMC: ${currentCmc}</span>
+                                    ${extraBadges}
+                                    <span class="text-[9px] font-black ${stockColor}">QTY: ${currentQty}</span>
                                 </div>
                             </div>
                             
                             <div class="action-bar">
                                 <span class="text-amber-500 font-black text-lg">
-                                    $${card.price.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                    $${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                 </span>
                                 ${buttonMarkup}
                             </div>
@@ -845,16 +848,18 @@
             const card = inventory.find(c => c.id === id);
             if (!card) return;
 
+            const currentQty = card.qty !== undefined ? card.qty : (card.QTY !== undefined ? card.QTY : 0);
+            const currentName = card.name || card.Name || 'Card';
             const currentInCart = cart.filter(item => item.id === id).length;
 
-            if (currentInCart >= card.qty) {
-                showToast(`Unable to add. Only ${card.qty} copy/copies left in stock!`);
+            if (currentInCart >= currentQty) {
+                showToast(`Unable to add. Only ${currentQty} copy/copies left in stock!`);
                 return;
             }
 
             cart.push(card);
             updateCartQuantity();
-            showToast(`Added ${card.name} to cart.`);
+            showToast(`Added ${currentName} to cart.`);
         }
 
         function updateCartQuantity() {
@@ -868,7 +873,7 @@
         }
 
         function removeFromCart(index) {
-            const name = cart[index].name;
+            const name = cart[index].name || cart[index].Name || 'Card';
             cart.splice(index, 1);
             updateCartQuantity();
             renderCart();
@@ -901,14 +906,19 @@
 
             let runningSum = 0;
             cartDisplay.innerHTML = cart.map((item, index) => {
-                runningSum += item.price;
+                const itemPrice = item.price !== undefined ? item.price : (item.Price !== undefined ? item.Price : 0.00);
+                const itemName = item.name || item.Name || 'Card';
+                const itemSet = item.set || item.Set || '';
+                const itemImg = item.img || item.ImageURL || 'https://cards.scryfall.io/back.png';
+                
+                runningSum += itemPrice;
                 return `
                     <div class="flex items-center gap-3 bg-[#1e293b] p-3 rounded-xl border border-slate-800">
-                        <img src="${item.img}" onclick="openCardModal('${item.id}')" class="w-12 h-16 object-cover rounded shadow-md cursor-zoom-in">
+                        <img src="${itemImg}" onclick="openCardModal('${item.id}')" class="w-12 h-16 object-cover rounded shadow-md cursor-zoom-in">
                         <div class="flex-grow min-width-0">
-                            <h4 class="text-white font-bold text-xs truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${item.id}')">${item.name}</h4>
-                            <p class="text-[10px] text-slate-500">${item.set}</p>
-                            <span class="text-amber-500 font-bold text-sm">$${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <h4 class="text-white font-bold text-xs truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${item.id}')">${itemName}</h4>
+                            <p class="text-[10px] text-slate-500">${itemSet}</p>
+                            <span class="text-amber-500 font-bold text-sm">$${itemPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <button onclick="removeFromCart(${index})" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
                             🗑️
@@ -921,11 +931,9 @@
             totalPrice.innerText = `$${runningSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // Handles Cloud-Safe secured transaction and order registration
         async function checkoutMock() {
             if (cart.length === 0) return;
 
-            // Group items to log details
             const aggregates = {};
             cart.forEach(item => {
                 if (aggregates[item.id]) {
@@ -942,26 +950,31 @@
             const receiptContainer = document.getElementById('receipt-items');
             
             const processedItems = Object.values(aggregates).map(item => {
-                const subTotal = item.card.price * item.qty;
+                const itemPrice = item.card.price !== undefined ? item.card.price : (item.card.Price !== undefined ? item.card.Price : 0.00);
+                const itemName = item.card.name || item.card.Name || 'Card';
+                const itemSet = item.card.set || item.card.Set || '';
+                const itemImg = item.card.img || item.card.ImageURL || 'https://cards.scryfall.io/back.png';
+
+                const subTotal = itemPrice * item.qty;
                 totalRecapSum += subTotal;
                 return {
                     markup: `
                         <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                            <img src="${item.card.img}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                            <img src="${itemImg}" onclick="openCardModal('${item.card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
                             <div class="flex-grow min-width-0">
-                                <h4 class="text-white text-xs font-bold truncate">${item.card.name}</h4>
-                                <p class="text-[10px] text-slate-500">${item.card.set} • Qty Purchased: ${item.qty}</p>
+                                <h4 class="text-white text-xs font-bold truncate">${itemName}</h4>
+                                <p class="text-[10px] text-slate-500">${itemSet} • Qty Purchased: ${item.qty}</p>
                                 <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
                         </div>
                     `,
                     orderItemRecord: {
                         id: item.card.id,
-                        name: item.card.name,
-                        set: item.card.set,
+                        name: itemName,
+                        set: itemSet,
                         qty: item.qty,
-                        price: item.card.price,
-                        img: item.card.img
+                        price: itemPrice,
+                        img: itemImg
                     }
                 };
             });
@@ -978,18 +991,20 @@
 
             if (useFirebase && currentUserState) {
                 try {
-                    // 1. Log order transaction safely in cloud database
                     const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
                     await setDoc(orderRef, orderRecord);
 
-                    // 2. Safely deduct and log store stock levels
                     for (const itemId of Object.keys(aggregates)) {
                         const group = aggregates[itemId];
                         const invCard = inventory.find(inv => inv.id === itemId);
                         if (invCard) {
-                            const newStock = Math.max(0, invCard.qty - group.qty);
+                            const oldStock = invCard.qty !== undefined ? invCard.qty : (invCard.QTY !== undefined ? invCard.QTY : 0);
+                            const newStock = Math.max(0, oldStock - group.qty);
                             const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
-                            await updateDoc(cardRef, { qty: newStock });
+                            
+                            // Maintain exact original field property structure for consistency
+                            if (invCard.qty !== undefined) await updateDoc(cardRef, { qty: newStock });
+                            if (invCard.QTY !== undefined) await updateDoc(cardRef, { QTY: newStock });
                         }
                     }
                     showToast(`Cloud Order processed: ${poCode}`);
@@ -999,11 +1014,11 @@
                     return;
                 }
             } else {
-                // Local recovery fallbacks
                 cart.forEach(cartItem => {
                     const invCard = inventory.find(inv => inv.id === cartItem.id);
                     if (invCard) {
-                        invCard.qty = Math.max(0, invCard.qty - 1);
+                        if (invCard.qty !== undefined) invCard.qty = Math.max(0, invCard.qty - 1);
+                        if (invCard.QTY !== undefined) invCard.QTY = Math.max(0, invCard.QTY - 1);
                     }
                 });
                 orders.unshift(orderRecord);
@@ -1018,7 +1033,6 @@
             }
 
             showView('receipt');
-
             cart = [];
             updateCartQuantity();
         }
@@ -1034,7 +1048,6 @@
             showToast(`Copied ${poText} to clipboard!`);
         }
 
-        // Admin controls
         async function addSingleCard() {
             const name = document.getElementById('admin-name').value;
             const set = document.getElementById('admin-set').value;
@@ -1051,9 +1064,7 @@
             }
 
             const colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
-            // Generate simple ID based on numeric progression
             const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
-
             const newCard = { id: newId, name, set, type, cmc, colors, price, qty, img };
 
             if (useFirebase && currentUserState) {
@@ -1074,7 +1085,6 @@
                 showToast(`${name} saved to local storage inventory.`);
             }
 
-            // Clean form fields
             document.getElementById('admin-name').value = '';
             document.getElementById('admin-set').value = '';
             document.getElementById('admin-cmc').value = '';
@@ -1105,20 +1115,28 @@
 
         function renderAdminList() {
             const adminList = document.getElementById('admin-inventory-list');
-            adminList.innerHTML = inventory.map(card => `
-                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <div class="flex items-center gap-3">
-                        <img src="${card.img}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
-                        <div>
-                            <h4 class="text-white text-xs font-bold">${card.name}</h4>
-                            <p class="text-[10px] text-slate-500">${card.set} • $${card.price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.qty}</p>
+            adminList.innerHTML = inventory.map(card => {
+                const currentQty = card.qty !== undefined ? card.qty : (card.QTY !== undefined ? card.QTY : 0);
+                const currentPrice = card.price !== undefined ? card.price : (card.Price !== undefined ? card.Price : 0.00);
+                const currentName = card.name || card.Name || 'Unnamed Card';
+                const currentSet = card.set || card.Set || 'Unknown';
+                const currentImg = card.img || card.ImageURL || 'https://cards.scryfall.io/back.png';
+
+                return `
+                    <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <img src="${currentImg}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
+                            <div>
+                                <h4 class="text-white text-xs font-bold">${currentName}</h4>
+                                <p class="text-[10px] text-slate-500">${currentSet} • $${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${currentQty}</p>
+                            </div>
                         </div>
+                        <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors">
+                            Delete Entry
+                        </button>
                     </div>
-                    <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors">
-                        Delete Entry
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function triggerCsvImport() {
@@ -1132,35 +1150,46 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const text = e.target.result;
-                const rows = text.split('\n');
+                const rows = text.split('\n').map(r => r.trim()).filter(r => r);
+                if (rows.length < 2) {
+                    showToast('CSV file is empty or missing data rows.');
+                    return;
+                }
+
+                // 1. Dynamically extract structural headers directly from column index zero
+                const headerMatches = rows[0].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || rows[0].split(',');
+                const headers = headerMatches.map(h => h.replace(/"/g, '').trim());
                 let newInventory = [];
 
+                // 2. Map schema elements safely
                 for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i].trim();
-                    if (!row) continue;
-
+                    const row = rows[i];
                     const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
-                    if (matches.length >= 5) {
-                        const name = matches[0].replace(/"/g, '').trim();
-                        const set = matches[1].replace(/"/g, '').trim();
-                        const type = matches[2].replace(/"/g, '').trim();
-                        const cmc = matches[3].replace(/"/g, '').trim();
-                        const price = parseFloat(matches[4].replace(/"/g, '')) || 0.00;
-                        const colors = matches[5] ? matches[5].replace(/"/g, '').toUpperCase().split('|').map(c => c.trim()) : ['C'];
-                        const img = matches[6] ? matches[6].replace(/"/g, '').trim() : 'https://cards.scryfall.io/back.png';
-                        const qty = matches[7] ? parseInt(matches[7].replace(/"/g, '')) || 10 : 10;
+                    
+                    if (matches.length >= headers.length) {
+                        let cardData = { id: (newInventory.length + 1).toString() };
 
-                        newInventory.push({
-                            id: (newInventory.length + 1).toString(),
-                            name, set, type, cmc, colors, price, qty, img
+                        headers.forEach((header, index) => {
+                            let value = matches[index].replace(/"/g, '').trim();
+                            const lowerHeader = header.toLowerCase();
+                            
+                            if (lowerHeader === 'price') {
+                                cardData[header] = parseFloat(value) || 0.00;
+                            } else if (lowerHeader === 'qty' || lowerHeader === 'cmc') {
+                                cardData[header] = parseInt(value) || 0;
+                            } else if (lowerHeader === 'colors') {
+                                cardData[header] = value ? value.toUpperCase().split('|').map(c => c.trim()) : ['C'];
+                            } else {
+                                cardData[header] = value;
+                            }
                         });
+                        newInventory.push(cardData);
                     }
                 }
 
                 if (newInventory.length > 0) {
                     if (useFirebase && currentUserState) {
                         try {
-                            // Clear and overwrite with imported dataset
                             for (const oldCard of inventory) {
                                 const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
                                 await deleteDoc(oldCardRef);
@@ -1169,34 +1198,53 @@
                                 const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
                                 await setDoc(newCardRef, newCard);
                             }
-                            showToast(`Uploaded ${newInventory.length} listings safely to cloud.`);
+                            showToast(`Successfully synchronized ${newInventory.length} dynamic entries to cloud.`);
                         } catch (err) {
-                            console.error("Firestore import batch write failed:", err);
-                            showToast("Firestore Import failure. Check console.");
+                            console.error("Firestore dynamic import failure:", err);
+                            showToast("Cloud sync failed. Check database configuration.");
                         }
                     } else {
                         inventory = newInventory;
                         localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                         renderStore();
                         renderAdminList();
-                        showToast(`Locally imported ${newInventory.length} CSV listings.`);
+                        showToast(`Locally imported ${newInventory.length} dynamic entries.`);
                     }
                 } else {
-                    showToast('Failure processing CSV structure.');
+                    showToast('Failure processing CSV layout configuration alignment.');
                 }
             };
             reader.readAsText(file);
         }
 
         function exportInventoryToCsv() {
+            if (inventory.length === 0) {
+                showToast("No data listings to export.");
+                return;
+            }
+
+            // Dynamically gather all unique column property fields currently living in memory
+            const dynamicHeaders = new Set();
+            inventory.forEach(card => Object.keys(card).forEach(key => {
+                if (key !== 'id') dynamicHeaders.add(key);
+            }));
+            const headerArray = Array.from(dynamicHeaders);
+
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Name,Set,Type,CMC,Price,Colors,ImageURL,QTY\n";
+            csvContent += headerArray.join(",") + "\n";
 
             inventory.forEach(card => {
-                const name = `"${card.name.replace(/"/g, '""')}"`;
-                const set = `"${card.set.replace(/"/g, '""')}"`;
-                const colors = card.colors ? `"${card.colors.join('|')}"` : "C";
-                csvContent += `${name},${set},${card.type},${card.cmc},${card.price},${colors},${card.img},${card.qty}\n`;
+                const rowValues = headerArray.map(header => {
+                    let val = card[header] !== undefined ? card[header] : '';
+                    if (Array.isArray(val)) {
+                        return `"${val.join('|')}"`;
+                    }
+                    if (typeof val === 'string' && val.includes(',')) {
+                        return `"${val.replace(/"/g, '""')}"`;
+                    }
+                    return val;
+                });
+                csvContent += rowValues.join(",") + "\n";
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -1208,10 +1256,8 @@
             document.body.removeChild(link);
         }
 
-        // Trigger safe authorization sequence
         initAuth();
 
-        // Bind core functions back to global window for HTML execution bindings
         window.goHome = goHome;
         window.toggleAdvancedSearch = toggleAdvancedSearch;
         window.showView = showView;
