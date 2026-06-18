@@ -4,79 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Magic Kaion | Premium MTG Marketplace</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <style>
         :root {
-            --bg: #0b0f19;
-            --card-bg: #111827;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
-            --accent: #6366f1;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #cbd5e1;
+            --accent: #f59e0b;
         }
         body { 
             background-color: var(--bg); 
-            color: var(--text-main); 
+            color: var(--text); 
             overflow-x: hidden; 
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
         }
-        
-        /* 3D Card Flip Animation Styling */
-        .card-perspective {
+
+        /* Perspective viewport for realistic 3D flipping depth */
+        .flip-container {
             perspective: 1000px;
-            width: 100%;
         }
-        .card-inner {
+        .flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
-            position: relative;
         }
-        .card-flipped {
+        .flipper.flipped {
             transform: rotateY(180deg);
         }
-        .card-front, .card-back {
+        .front-face, .back-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
-            width: 100%;
-        }
-        .card-back {
-            transform: rotateY(180deg);
-            position: absolute;
             top: 0;
             left: 0;
-            height: 100%;
+            border-radius: inherit;
         }
-
-        .card-row {
-            display: flex;
-            width: 100%;
-            gap: 12px;
-            padding: 12px;
+        .back-face {
+            transform: rotateY(180deg);
+        }
+        
+        /* Grid Card Styling */
+        .card-grid-item {
             background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid #1f2937;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
         }
-        .card-row:hover {
-            border-color: var(--accent);
-            box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.15);
+        .card-grid-item:hover {
+            border-color: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
         }
 
-        .card-details {
+        .nav-container {
             display: flex;
-            flex-direction: column;
             justify-content: space-between;
-            flex-grow: 1; 
-            min-width: 0;
-        }
-
-        .action-bar {
-            display: flex;
-            justify-content: space-between; 
             align-items: center;
             width: 100%;
-            margin-top: 8px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .color-dot {
@@ -96,49 +86,65 @@
             transform: scale(0.9);
         }
 
+        /* Prevent background scroll when modal is active */
+        .modal-open {
+            overflow: hidden;
+        }
+
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4">
-        <div class="flex items-center gap-2 mb-4 animate-bounce">
-            <span class="text-indigo-400 text-3xl">✨</span>
-            <span class="text-white font-black text-2xl tracking-tighter uppercase select-none">Magic Kaion</span>
+        <div class="flex items-center gap-2 mb-4 animate-pulse">
+            <span class="text-amber-400 text-3xl">✨</span>
+            <span class="text-white font-black text-2xl tracking-tighter uppercase">Magic Kaion</span>
         </div>
         <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
-            <div class="h-full bg-indigo-500 rounded-full w-1/2 animate-pulse" style="animation: loading-bar 1.5s infinite ease-in-out"></div>
+            <div class="h-full bg-indigo-500 rounded-full w-1/2 animate-infinite-scroll" style="animation: loading-bar 1.5s infinite ease-in-out"></div>
         </div>
-        <p class="text-xs text-slate-500 mt-4 tracking-wider uppercase font-semibold">Syncing Secure Database Rules...</p>
+        <p id="loader-status" class="text-xs text-slate-500 mt-4 tracking-wider uppercase font-medium">Syncing cloud database anonymously...</p>
     </div>
 
-    <nav class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 shadow-2xl">
-        <div class="flex justify-between items-center w-100 max-w-4xl mx-auto">
-            <div class="flex items-center gap-2">
-                <span class="text-indigo-400 text-xl">✨</span>
-                <span class="text-white font-black text-lg tracking-tighter uppercase">Magic Kaion</span>
+    <style>
+        @keyframes loading-bar {
+            0 { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+    </style>
+
+    <nav class="sticky top-0 z-40 bg-[#020617] border-b border-slate-800 px-4 py-3 shadow-2xl">
+        <div class="nav-container">
+            <div class="flex flex-col flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-amber-400 text-xl">✨</span>
+                    <span class="text-white font-black text-lg tracking-tighter uppercase select-none">Magic Kaion</span>
+                </div>
+                <!-- Realtime connection tag -->
+                <span id="cloud-status-tag" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Connecting...</span>
             </div>
 
             <div class="flex gap-4 sm:gap-6 ml-2">
-                <button id="nav-browse" onclick="goHome()" class="flex flex-col items-center text-[10px] text-indigo-400 font-bold gap-0.5 transition-colors">
+                <button id="nav-browse" onclick="goHome()" class="flex flex-col items-center text-[10px] text-amber-500 font-bold gap-0.5 transition-colors">
                     <span class="text-xl">🏠</span>Browse
                 </button>
                 <button id="nav-search" onclick="toggleAdvancedSearch()" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">🔍</span>Filters
+                    <span class="text-xl">🔍</span>Advanced Search
                 </button>
                 <button id="nav-admin" onclick="showView('admin')" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
                     <span class="text-xl">⚙️</span>Admin
                 </button>
                 <button id="nav-cart" onclick="showView('cart')" class="relative flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
                     <span class="text-xl">🛒</span>Cart
-                    <div id="cart-count" class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] w-4.5 h-4.5 px-1 rounded-full flex items-center justify-center hidden border border-slate-950 font-black">0</div>
+                    <div id="cart-count" class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] w-4.5 h-4.5 px-1 rounded-full flex items-center justify-center hidden border border-[#020617] font-black">0</div>
                 </button>
             </div>
         </div>
     </nav>
 
-    <div id="advanced-search-panel" class="hidden bg-slate-900 border-b border-slate-800 p-4 shadow-2xl">
-        <div class="max-w-2xl mx-auto space-y-4">
+    <div id="advanced-search-panel" class="hidden bg-[#1e293b] border-b border-slate-800 p-4 shadow-2xl">
+        <div class="max-w-4xl mx-auto space-y-4">
             <div>
                 <div class="flex justify-between items-center">
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Mana Colors (Multi-select)</label>
@@ -185,23 +191,25 @@
         </div>
     </div>
 
-    <div id="hero-search" class="p-4 sm:p-6 max-w-2xl mx-auto">
+    <div id="hero-search" class="p-4 sm:p-6 max-w-4xl mx-auto">
         <div class="relative">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">🔍</span>
-            <input type="text" id="main-search" onkeyup="applyFilters()" placeholder="Search catalog..." 
-                   class="w-full bg-slate-900 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-lg text-base">
+            <input type="text" id="main-search" onkeyup="applyFilters()" placeholder="Search Magic Kaion collection..." 
+                   class="w-full bg-[#1e293b] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-lg text-base">
         </div>
     </div>
 
-    <main id="main-content" class="px-4 pb-24 max-w-2xl mx-auto">
+    <main id="main-content" class="px-4 pb-24 max-w-6xl mx-auto">
         
-        <!-- View: Browse Store -->
-        <div id="view-browse" class="space-y-4">
-            <div id="store-display" class="space-y-3.5"></div>
+        <div id="view-browse" class="space-y-6">
+            <!-- Stores listings in responsive columns -->
+            <div id="store-display" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+            
+            <!-- Dynamic load pagination footer -->
+            <div id="load-more-container" class="flex justify-center pt-6"></div>
         </div>
 
-        <!-- View: Shopping Cart -->
-        <div id="view-cart" class="hidden space-y-6">
+        <div id="view-cart" class="hidden space-y-6 max-w-2xl mx-auto">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h2 class="text-xl font-black text-white">Your Shopping Cart</h2>
                 <button onclick="clearCart()" class="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1">
@@ -213,41 +221,42 @@
                 <span class="text-4xl block mb-2">🛒</span>
                 Your cart is empty. Start browsing our rare collectibles!
             </div>
-            <div id="cart-total-container" class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-4">
+            <div id="cart-total-container" class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-400 font-bold">Total Items:</span>
                     <span id="cart-total-qty" class="text-white font-black">0</span>
                 </div>
                 <div class="flex justify-between items-center border-t border-slate-800 pt-3">
                     <span class="text-slate-400 font-bold">Total Price:</span>
-                    <span id="cart-total-price" class="text-emerald-500 text-2xl font-black">$0.00</span>
+                    <span id="cart-total-price" class="text-amber-500 text-2xl font-black">$0.00</span>
                 </div>
-                <button onclick="checkoutMock()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-950/40">
+                <button onclick="checkoutMock()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40">
                     Secured Checkout
                 </button>
             </div>
         </div>
 
-        <!-- View: Receipt / Checkout Confirm -->
-        <div id="view-receipt" class="hidden space-y-6">
-            <div class="text-center py-6 bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl">
+        <!-- Order Confirmed View (Receipt) -->
+        <div id="view-receipt" class="hidden space-y-6 max-w-2xl mx-auto">
+            <div class="text-center py-6 bg-slate-800/50 rounded-2xl border border-slate-800 p-6 shadow-xl">
                 <span class="text-5xl block mb-4">🎉</span>
                 <h2 class="text-2xl font-black text-white">Order Confirmed!</h2>
                 <p class="text-slate-300 mt-3 text-sm leading-relaxed max-w-md mx-auto">
-                    Your order has been logged securely. Reference code:
+                    Thank you for ordering from us, please continue in our original communication channel with this purchase order number:
                 </p>
-                <div onclick="copyPoNumber()" class="my-5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl py-4 px-6 inline-block font-mono text-xl text-indigo-400 font-black cursor-pointer shadow-inner active:scale-95 transition-all select-all" title="Click to copy PO number">
+                <div onclick="copyPoNumber()" class="my-5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl py-4 px-6 inline-block font-mono text-xl text-amber-500 font-black cursor-pointer shadow-inner active:scale-95 transition-all select-all" title="Click to copy PO number">
                     <span id="receipt-po-number">PO-123456</span>
                 </div>
                 <p class="text-[10px] text-slate-500">☝️ Click the code block to copy the PO number</p>
             </div>
 
+            <!-- Receipt Order Items Recap -->
             <div class="space-y-3">
                 <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Order Recap</h3>
                 <div id="receipt-items" class="space-y-2.5"></div>
-                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
+                <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
                     <span class="text-slate-400 font-bold text-sm">Total Value Settled:</span>
-                    <span id="receipt-total" class="text-emerald-500 text-xl font-black">$0.00</span>
+                    <span id="receipt-total" class="text-amber-500 text-xl font-black">$0.00</span>
                 </div>
             </div>
 
@@ -256,39 +265,42 @@
             </button>
         </div>
 
-        <!-- View: Administrator Console -->
-        <div id="view-admin" class="hidden space-y-6">
-            <div class="border-b border-slate-800 pb-3">
-                <h2 class="text-xl font-black text-white">Inventory Control System</h2>
-                <p class="text-xs text-slate-500 mt-1">Manage database syncs, add entries, and process CSV files.</p>
+        <div id="view-admin" class="hidden space-y-6 max-w-3xl mx-auto">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-black text-white">Inventory Control System</h2>
+                    <p class="text-xs text-slate-500 mt-1">Manage catalog listings and monitor active orders.</p>
+                </div>
             </div>
 
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-4">
+            <!-- CSV Actions Container -->
+            <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
                 <div class="flex flex-col gap-3">
                     <div class="flex justify-between items-center">
                         <h3 class="font-bold text-white text-sm">Database & Synchronization</h3>
-                        <button onclick="resetAllQuantities()" class="text-xs bg-indigo-500 hover:bg-indigo-400 text-white font-black px-3 py-1.5 rounded-lg transition-colors shadow">
-                            🔄 Reset Quantities to 10
+                        <button onclick="resetAllQuantities()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition-colors shadow">
+                            🔄 Test: Reset Qty to 10
                         </button>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">
-                            📥 Import CSV
+                            📥 Import CSV Data
                         </button>
                         <button onclick="exportInventoryToCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-3 rounded-lg text-xs transition-colors">
-                            📤 Export CSV
+                            📤 Export CSV Data
                         </button>
                     </div>
+                    <!-- Order History Button -->
                     <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
                         📋 View Order History Logs (<span id="admin-orders-count">0</span>)
                     </button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
-                <p class="text-[10px] text-slate-500 italic">Expected CSV structure: Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty</p>
+                <p class="text-[10px] text-slate-500 italic">Expected CSV format aligns directly to magic_kaion_catalog.csv layout headers.</p>
             </div>
 
-            <!-- Admin Panel: Searchable Transaction Orders -->
-            <div id="admin-orders-panel" class="hidden bg-slate-900 p-5 rounded-xl border border-indigo-950 space-y-4">
+            <!-- Order History List Panel -->
+            <div id="admin-orders-panel" class="hidden bg-[#1e293b] p-5 rounded-xl border border-indigo-950 space-y-4">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                     <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
                         <span>📋</span> Order History Logs
@@ -298,30 +310,37 @@
                 <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Admin Panel: Add Single Entry Form -->
-            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
+            <!-- Individual Add Card Form -->
+            <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 space-y-3">
                 <h3 class="font-bold text-white text-sm">Add New Singles Entry</h3>
                 <div class="space-y-2">
-                    <input id="admin-name" type="text" placeholder="Card Name (e.g. Ultra Magnus)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
-                    <input id="admin-set" type="text" placeholder="Set Name (e.g. Transformers)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
+                    <input id="admin-name" type="text" placeholder="Card Name (e.g. Mox Diamond)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                    <input id="admin-set" type="text" placeholder="Set (e.g. Stronghold)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                     <div class="grid grid-cols-2 gap-2">
-                        <input id="admin-type" type="text" placeholder="Type Line (e.g. Artifact Creature)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
-                        <input id="admin-cmc" type="number" placeholder="Mana Value" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
+                        <select id="admin-type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                            <option>Creature</option>
+                            <option>Instant</option>
+                            <option>Sorcery</option>
+                            <option>Artifact</option>
+                            <option>Planeswalker</option>
+                            <option>Enchantment</option>
+                            <option>Land</option>
+                        </select>
+                        <input id="admin-cmc" type="number" placeholder="Mana Value" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
-                        <input id="admin-qty" type="number" placeholder="Qty" value="10" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
-                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
+                        <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                        <input id="admin-qty" type="number" placeholder="Qty" value="10" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                     </div>
-                    <input id="admin-img" type="text" placeholder="Front Image URL" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
-                    <input id="admin-img-back" type="text" placeholder="Back Image URL (Optional - For DFC cards)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none">
+                    <input id="admin-img" type="text" placeholder="Scryfall or Custom Image URL" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
                 </div>
                 <button onclick="addSingleCard()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all active:scale-95">
                     Save New Item to Inventory
                 </button>
             </div>
 
-            <!-- Admin Panel: Current Stock Items -->
+            <!-- Current Inventory Management List -->
             <div class="space-y-3">
                 <h3 class="font-black text-white text-sm uppercase tracking-wider">Current Stock List</h3>
                 <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
@@ -329,22 +348,49 @@
         </div>
     </main>
 
-    <!-- UI Overlay elements -->
+    <!-- Custom Floating Toast Alerts -->
     <div id="toast-notice" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-2 opacity-0"></div>
+
+    <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-200 opacity-0">
+        <div class="relative max-w-sm w-full flex flex-col items-center dynamic-modal-content" onclick="event.stopPropagation()">
+            <button onclick="closeCardModal()" class="absolute -top-12 right-0 bg-slate-800 hover:bg-slate-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg text-lg transition-transform active:scale-90">
+                ✕
+            </button>
+            
+            <!-- 3D Card flipper frame for modal viewing -->
+            <div class="w-full aspect-[5/7] max-h-[65vh] flip-container mb-4 relative" style="width: 290px; height: 406px;">
+                <div id="modal-flipper" class="flipper w-full h-full rounded-2xl">
+                    <div class="front-face rounded-2xl overflow-hidden bg-slate-950">
+                        <img id="modal-card-img" src="" alt="Zoomed Front View" class="w-full h-full border border-slate-700 object-cover">
+                    </div>
+                    <div class="back-face rounded-2xl overflow-hidden bg-slate-950">
+                        <img id="modal-card-img-back" src="" alt="Zoomed Back View" class="w-full h-full border border-slate-700 object-cover">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Double-sided trigger control -->
+            <button id="modal-flip-btn" onclick="toggleModalFlip(event)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-5 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-1.5 text-xs mb-3 tracking-wide">
+                <span>🔄</span> Flip Card Face
+            </button>
+
+            <p id="modal-card-caption" class="text-slate-400 font-medium text-xs mt-1 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800 tracking-wide text-center truncate w-full"></p>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, updateDoc, deleteDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase project configuration definitions
-        const manualFirebaseConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0",
             authDomain: "magic-kion.firebaseapp.com",
             projectId: "magic-kion",
             storageBucket: "magic-kion.firebasestorage.app",
             messagingSenderId: "928438635995",
-            appId: "1:928438635995:web:ccb79329b678f299046bfe"
+            appId: "1:928438635995:web:ccb79329b678f299046bfe",
+            measurementId: "G-03V3962LTW"
         };
         const appId = 'magic-kaion-app';
 
@@ -355,16 +401,18 @@
         try {
             const config = (typeof __firebase_config !== 'undefined' && __firebase_config) 
                 ? JSON.parse(__firebase_config) 
-                : manualFirebaseConfig;
+                : firebaseConfig;
             
             if (config.apiKey) {
                 const app = initializeApp(config);
                 auth = getAuth(app);
                 db = getFirestore(app);
                 useFirebase = true;
+            } else {
+                console.warn("Firebase config variables empty. Activating localized offline fallback.");
             }
         } catch (error) {
-            console.error("Firebase setup failed, using offline fallback:", error);
+            console.error("Firebase startup collapsed, triggering local recovery:", error);
         }
 
         let inventory = [];
@@ -374,35 +422,64 @@
         let activeView = 'browse';
         let currentUserState = null;
 
-        // Default local card items fallback
+        // Dynamic render parameters
+        let displayLimit = 20;
+        let currentFilteredData = [];
+
+        // Seed inventory aligned EXACTLY to the 'magic_kaion_catalog.csv' schema layout
         const seedInventoryDefaults = [
             { id: '1', Name: 'Black Lotus', Set: 'Alpha', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '' },
             { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '' },
             { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg' },
             { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '' },
             { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '' },
-            { id: '6', Name: 'Ultra Magnus, Tactician // Ultra Magnus, Armored Carrier', Set: 'Transformers', Type: 'Artifact Creature', CMC: '5', Colors: ['W', 'U', 'R', 'G'], Price: 14.50, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/1/11cf694b-e85d-4076-8cc9-f9c34a9efdf2.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/1/1/11cf694b-e85d-4076-8cc9-f9c34a9efdf2.jpg' }
+            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg' }
         ];
+
+        /**
+         * Schema Normalization Layer
+         * Guarantees absolute schema compatibility regardless of capitalization,
+         * ensuring perfect sync with the file "magic_kaion_catalog.csv".
+         */
+        function normalizeCard(card) {
+            if (!card) return null;
+            return {
+                id: card.id ? card.id.toString() : (card.id ? card.id.toString() : crypto.randomUUID()),
+                Name: card.Name || card.name || 'Unnamed Card',
+                Set: card.Set || card.set || 'Unknown Set',
+                Type: card.Type || card.type || 'Unknown Type',
+                CMC: card.CMC !== undefined ? card.CMC.toString() : (card.cmc !== undefined ? card.cmc.toString() : '0'),
+                Price: parseFloat(card.Price !== undefined ? card.Price : (card.price !== undefined ? card.price : 0.00)) || 0.00,
+                Colors: Array.isArray(card.Colors) ? card.Colors : (Array.isArray(card.colors) ? card.colors : (card.Colors ? card.Colors.split('|') : (card.colors ? card.colors.split('|') : ['C']))),
+                ImageURL: card.ImageURL || card.img || 'https://cards.scryfall.io/back.png',
+                ImageURL_Back: card.ImageURL_Back || card.img_back || '',
+                Qty: parseInt(card.Qty !== undefined ? card.Qty : (card.qty !== undefined ? card.qty : 0)) || 0
+            };
+        }
 
         const initAuth = async () => {
             if (!useFirebase) {
-                loadLocalFallback("Offline Mode: Running on local database.");
+                loadLocalFallback("Offline Mode: Running on browser fallback storage.");
                 return;
             }
             try {
-                await signInAnonymously(auth);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
             } catch (error) {
-                console.error("Auth process encountered an issue, activating fallback:", error);
-                loadLocalFallback("Offline Mode: Connected to local device cache.");
+                console.error("Authentication handshake failure, running localized fallback:", error);
+                loadLocalFallback("Offline Mode: Authenticating to local storage fallback.");
             }
         };
 
-        function loadLocalFallback(msg = "Local testing engine active.") {
+        function loadLocalFallback(msg = "Local test mode active.") {
             const savedInventory = localStorage.getItem('magic_kaion_inventory');
             if (savedInventory) {
-                inventory = JSON.parse(savedInventory);
+                inventory = JSON.parse(savedInventory).map(normalizeCard);
             } else {
-                inventory = [...seedInventoryDefaults];
+                inventory = [...seedInventoryDefaults].map(normalizeCard);
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
             }
 
@@ -417,7 +494,13 @@
             const loader = document.getElementById('loading-overlay');
             if (loader) loader.classList.add('hidden');
 
-            renderStore();
+            const statusTag = document.getElementById('cloud-status-tag');
+            if (statusTag) {
+                statusTag.innerText = "⚠️ Offline Mode (Local Storage)";
+                statusTag.className = "text-[9px] text-amber-500 font-bold uppercase tracking-wider";
+            }
+
+            applyFilters();
             renderAdminList();
             updateAdminOrdersCount();
             showToast(msg);
@@ -426,52 +509,40 @@
         onAuthStateChanged(auth, async (user) => {
             currentUserState = user;
             if (useFirebase && user) {
+                const statusTag = document.getElementById('cloud-status-tag');
+                if (statusTag) {
+                    statusTag.innerText = "☁️ Connected to Cloud Database";
+                    statusTag.className = "text-[9px] text-emerald-400 font-bold uppercase tracking-wider";
+                }
                 await seedInventoryIfEmpty();
                 setupRealtimeSync();
             } else if (useFirebase && !user) {
-                // Background auth retry
+                // waiting resolution
             } else {
                 loadLocalFallback();
             }
         });
 
-        function normalizeCard(docData) {
-            return {
-                id: docData.id || '',
-                Name: docData.Name || docData.name || 'Unnamed Card',
-                Set: docData.Set || docData.set || 'Unknown Set',
-                Type: docData.Type || docData.type || 'Unknown Type',
-                CMC: (docData.CMC !== undefined) ? docData.CMC.toString() : (docData.cmc !== undefined ? docData.cmc.toString() : '0'),
-                Colors: docData.Colors || docData.colors || ['C'],
-                Price: parseFloat(docData.Price !== undefined ? docData.Price : (docData.price !== undefined ? docData.price : 0.00)),
-                Qty: parseInt(docData.Qty !== undefined ? docData.Qty : (docData.qty !== undefined ? docData.qty : 10)),
-                ImageURL: docData.ImageURL || docData.img || docData.imageURL || 'https://cards.scryfall.io/back.png',
-                ImageURL_Back: docData.ImageURL_Back || docData.imgBack || docData.imageURL_back || ''
-            };
-        }
-
         async function seedInventoryIfEmpty() {
             if (!currentUserState || !useFirebase) return;
             try {
-                // Securely matched path structure
                 const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
                 const querySnapshot = await getDocs(inventoryCol);
                 
                 if (querySnapshot.empty) {
                     for (const card of seedInventoryDefaults) {
                         const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
-                        await setDoc(cardRef, card);
+                        await setDoc(cardRef, normalizeCard(card));
                     }
                 }
             } catch (err) {
-                console.error("Error setting default records inside nested paths:", err);
+                console.error("Failed writing initial seed data:", err);
             }
         }
 
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
-            // Direct mapping to the secure nesting rules
             const inventoryCol = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
             const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
 
@@ -485,11 +556,11 @@
                 const loader = document.getElementById('loading-overlay');
                 if (loader) loader.classList.add('hidden');
 
-                renderStore();
+                applyFilters();
                 renderAdminList();
             }, (err) => {
-                console.error("Auth security rules denied global queries, matching path fallback...", err);
-                loadLocalFallback();
+                console.error("Realtime inventory collection subscription broken:", err);
+                loadLocalFallback("Subscription error, recovered with local fallback.");
             });
 
             onSnapshot(ordersCol, (snapshot) => {
@@ -504,7 +575,7 @@
                     renderOrderHistoryLogs();
                 }
             }, (err) => {
-                console.error("Orders sync failed:", err);
+                console.error("Realtime orders history subscription broken:", err);
             });
         }
 
@@ -522,6 +593,63 @@
                     toast.classList.add('hidden');
                 }, 300);
             }, 3000);
+        }
+
+        function openCardModal(cardId) {
+            const rawCard = inventory.find(c => c.id === cardId);
+            if (!rawCard) return;
+
+            const card = normalizeCard(rawCard);
+            const modal = document.getElementById('card-modal');
+            const modalImg = document.getElementById('modal-card-img');
+            const modalImgBack = document.getElementById('modal-card-img-back');
+            const modalCaption = document.getElementById('modal-card-caption');
+            const modalFlipper = document.getElementById('modal-flipper');
+            const modalFlipBtn = document.getElementById('modal-flip-btn');
+
+            // Reset flipper state to front-face initially
+            modalFlipper.classList.remove('flipped');
+
+            modalImg.src = card.ImageURL;
+            
+            if (card.ImageURL_Back) {
+                modalImgBack.src = card.ImageURL_Back;
+                modalFlipBtn.classList.remove('hidden');
+            } else {
+                modalImgBack.src = 'https://cards.scryfall.io/back.png';
+                modalFlipBtn.classList.add('hidden');
+            }
+
+            modalCaption.innerText = `${card.Name} — ${card.Set}`;
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('modal-open');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+            }, 10);
+        }
+
+        function toggleModalFlip(event) {
+            if (event) event.stopPropagation();
+            const flipper = document.getElementById('modal-flipper');
+            flipper.classList.toggle('flipped');
+        }
+
+        function toggleGridCardFlip(event, cardId) {
+            if (event) event.stopPropagation();
+            const flipper = document.getElementById(`grid-flipper-${cardId}`);
+            if (flipper) {
+                flipper.classList.toggle('flipped');
+            }
+        }
+
+        function closeCardModal() {
+            const modal = document.getElementById('card-modal');
+            modal.classList.add('opacity-0');
+            document.body.classList.remove('modal-open');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
         }
 
         function showView(viewName) {
@@ -554,7 +682,8 @@
             document.getElementById('filter-type').value = 'all';
             document.getElementById('filter-cmc').value = 'any';
             clearColorFilters();
-            renderStore(inventory);
+            displayLimit = 20; // reset page limits
+            applyFilters();
             showView('browse');
         }
 
@@ -574,10 +703,10 @@
 
             Object.keys(links).forEach(key => {
                 if (key === activeView) {
-                    links[key].classList.add('text-indigo-400');
+                    links[key].classList.add('text-amber-500');
                     links[key].classList.remove('text-slate-400');
                 } else {
-                    links[key].classList.remove('text-indigo-400');
+                    links[key].classList.remove('text-amber-500');
                     links[key].classList.add('text-slate-400');
                 }
             });
@@ -590,7 +719,7 @@
                 element.style.borderColor = 'transparent';
             } else {
                 selectedColors.push(color);
-                element.style.borderColor = '#6366f1';
+                element.style.borderColor = '#4f46e5';
             }
             applyFilters();
         }
@@ -606,26 +735,56 @@
             const typeFilter = document.getElementById('filter-type').value.toLowerCase();
             const cmcFilter = document.getElementById('filter-cmc').value;
 
-            const filteredData = inventory.filter(card => {
-                const matchesSearch = card.Name.toLowerCase().includes(searchQuery) || card.Set.toLowerCase().includes(searchQuery);
-                
-                // Flexible type string inclusion to find multiple types like "Artifact Creature"
-                const matchesType = typeFilter === 'all' || card.Type.toLowerCase().includes(typeFilter);
+            const filteredData = inventory.map(normalizeCard).filter(card => {
+                const cardName = card.Name.toLowerCase();
+                const cardSet = card.Set.toLowerCase();
+                const cardType = card.Type.toLowerCase();
+                const cardCmc = card.CMC;
+                const cardColors = card.Colors;
+
+                const matchesSearch = cardName.includes(searchQuery) || cardSet.includes(searchQuery);
+                const matchesType = typeFilter === 'all' || cardType.includes(typeFilter);
                 
                 let matchesCmc = true;
                 if (cmcFilter !== 'any') {
-                    matchesCmc = cmcFilter === '7+' ? parseInt(card.CMC) >= 7 : card.CMC.toString() === cmcFilter;
+                    matchesCmc = cmcFilter === '7+' ? parseInt(cardCmc) >= 7 : cardCmc.toString() === cmcFilter;
                 }
 
                 let matchesColors = true;
                 if (selectedColors.length > 0) {
-                    matchesColors = selectedColors.some(c => card.Colors && card.Colors.includes(c));
+                    matchesColors = selectedColors.some(c => cardColors.includes(c));
                 }
 
                 return matchesSearch && matchesType && matchesCmc && matchesColors;
             });
 
+            // Reset dynamic scrolling offset on queries change
+            displayLimit = 20; 
             renderStore(filteredData);
+        }
+
+        function renderTypeBadges(rawType) {
+            if (!rawType) return '';
+            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
+            const mainTypes = rawType.split('—')[0].split('-')[0].trim();
+            const words = mainTypes.split(/\s+/);
+            
+            return words.map(word => {
+                const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
+                if (!cleanWord) return '';
+                
+                // Assign beautiful, contextual color styles to different magic card types
+                let badgeStyle = "bg-slate-900/60 border-slate-800 text-slate-400";
+                if (cleanWord === 'creature') badgeStyle = "bg-amber-950/40 border-amber-800/60 text-amber-300";
+                if (cleanWord === 'artifact') badgeStyle = "bg-sky-950/40 border-sky-800/60 text-sky-300";
+                if (cleanWord === 'enchantment') badgeStyle = "bg-purple-950/40 border-purple-800/60 text-purple-300";
+                if (cleanWord === 'land') badgeStyle = "bg-emerald-950/40 border-emerald-800/60 text-emerald-300";
+                if (cleanWord === 'planeswalker') badgeStyle = "bg-rose-950/40 border-rose-800/60 text-rose-300";
+                if (cleanWord === 'legendary') badgeStyle = "bg-yellow-950/40 border-yellow-800/60 text-yellow-300";
+                if (cleanWord === 'instant' || cleanWord === 'sorcery') badgeStyle = "bg-indigo-950/40 border-indigo-800/60 text-indigo-300";
+
+                return `<span class="inline-block px-1.5 py-0.5 border text-[8px] rounded uppercase font-bold tracking-wider ${badgeStyle}">${word}</span>`;
+            }).join(' ');
         }
 
         async function resetAllQuantities() {
@@ -635,19 +794,20 @@
                         const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
                         await updateDoc(cardRef, { Qty: 10 });
                     }
-                    showToast("Database inventory successfully synchronized back to 10 copies.");
+                    showToast("Cloud synchronization completed: Reset levels to 10.");
                 } catch (err) {
-                    console.error("Stock sync issue:", err);
-                    showToast("Sync Error. Check your console logs.");
+                    console.error("Firestore batch transaction blocked:", err);
+                    showToast("Sync Error: Verify Firestore console rules.");
                 }
             } else {
-                inventory.forEach(card => {
+                inventory = inventory.map(normalizeCard).map(card => {
                     card.Qty = 10;
+                    return card;
                 });
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
-                renderStore();
+                applyFilters();
                 renderAdminList();
-                showToast("Local stock synchronized back to 10 copies.");
+                showToast("Local backup levels successfully reset to 10.");
             }
         }
 
@@ -669,26 +829,26 @@
         function renderOrderHistoryLogs() {
             const listContainer = document.getElementById('admin-orders-list');
             if (orders.length === 0) {
-                listContainer.innerHTML = `<p class="text-center text-slate-500 py-6 text-xs">No transactions registered yet.</p>`;
+                listContainer.innerHTML = `<p class="text-center text-slate-500 py-6 text-xs">No transactions have been recorded yet.</p>`;
                 return;
             }
 
             listContainer.innerHTML = orders.map(order => {
                 const itemsMarkup = order.items.map(item => `
-                    <div class="flex items-center gap-2 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
-                        <img src="${item.img || item.ImageURL}" class="w-6 h-9 object-cover rounded shadow">
+                    <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
+                        <img src="${item.ImageURL || 'https://cards.scryfall.io/back.png'}" onclick="openCardModal('${item.id}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
                         <div class="min-width-0 flex-grow">
-                            <p class="text-white text-[11px] font-bold truncate">${item.name || item.Name}</p>
-                            <p class="text-[9px] text-slate-500">${item.set || item.Set} • Qty: ${item.qty || item.Qty} • $${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                            <p class="text-white text-[11px] font-bold truncate">${item.Name}</p>
+                            <p class="text-[9px] text-slate-500">${item.Set || ''} • Qty: ${item.qty} • $${item.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
                         </div>
                     </div>
                 `).join('');
 
                 return `
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-850 space-y-3">
-                        <div class="flex justify-between items-start gap-2 border-b border-slate-800 pb-2">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-start gap-2 border-b border-slate-800/80 pb-2">
                             <div>
-                                <span onclick="copySpecificPo('${order.poCode}')" class="font-mono text-sm font-black text-indigo-400 hover:text-indigo-300 cursor-pointer flex items-center gap-1">
+                                <span onclick="copySpecificPo('${order.poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
                                     ${order.poCode} <span class="text-[10px]">📋</span>
                                 </span>
                                 <span class="text-[9px] text-slate-500 block mt-0.5">${order.date}</span>
@@ -696,7 +856,7 @@
                             <span class="text-emerald-500 font-bold text-sm">$${order.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <div class="space-y-1.5">
-                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items</span>
+                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items (${order.items.reduce((acc, i) => acc + i.qty, 0)})</span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                                 ${itemsMarkup}
                             </div>
@@ -713,115 +873,141 @@
             tempInput.select();
             document.execCommand("copy");
             document.body.removeChild(tempInput);
-            showToast(`Copied ${poCode} reference!`);
+            showToast(`Copied ${poCode} to clipboard!`);
         }
 
-        window.flipCard = function(element) {
-            const cardInner = element.closest('.card-inner');
-            if (cardInner) {
-                cardInner.classList.toggle('card-flipped');
-            }
-        };
+        // Increments showing index offsets and triggers render store update
+        function loadMoreCards() {
+            displayLimit += 20;
+            renderStore(currentFilteredData);
+        }
 
         function renderStore(data = inventory) {
+            currentFilteredData = data;
             const storeDisplay = document.getElementById('store-display');
+            const loadMoreContainer = document.getElementById('load-more-container');
+
             if (data.length === 0) {
                 storeDisplay.innerHTML = `
-                    <div class="text-center py-16 text-slate-500">
-                        <span class="text-4xl block mb-2">🃏</span>No cards match your current filter settings.
+                    <div class="col-span-full text-center py-16 text-slate-500">
+                        <span class="text-4xl block mb-2">🃏</span>No cards match your filters.
                     </div>
                 `;
+                loadMoreContainer.innerHTML = '';
                 return;
             }
 
-            storeDisplay.innerHTML = data.map(card => {
-                const colorsDisplay = (card.Colors || []).map(c => {
+            // Paginate local view to 20 element chunks at once
+            const paginatedData = data.slice(0, displayLimit);
+
+            storeDisplay.innerHTML = paginatedData.map(cardItem => {
+                const card = normalizeCard(cardItem);
+                const colorsDisplay = card.Colors.map(c => {
                     let colorClass = 'bg-slate-500';
                     if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
                     if (c === 'U') colorClass = 'bg-blue-600 text-white';
-                    if (c === 'B') colorClass = 'bg-neutral-800 text-slate-200 border border-slate-750';
+                    if (c === 'B') colorClass = 'bg-neutral-800 text-slate-200 border border-slate-700';
                     if (c === 'R') colorClass = 'bg-red-600 text-white';
                     if (c === 'G') colorClass = 'bg-green-600 text-white';
-                    return `<span class="inline-block w-2.5 h-2.5 rounded-full ${colorClass}"></span>`;
+                    return `<span class="inline-block w-2 h-2 rounded-full ${colorClass}"></span>`;
                 }).join('');
 
                 const isOutOfStock = card.Qty <= 0;
                 const buttonMarkup = isOutOfStock 
-                    ? `<button disabled class="bg-slate-850 text-slate-600 px-5 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-800">Sold Out</button>`
-                    : `<button onclick="addToCart('${card.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-950/40">Add</button>`;
+                    ? `<button disabled class="w-full bg-slate-800 text-slate-500 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
+                    : `<button onclick="addToCart('${card.id}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add to Cart</button>`;
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Split type string to make separate, elegant badges for multi-type cards
-                const typeBadges = (card.Type || '').split(' ').map(t => {
-                    if (!t) return '';
-                    return `<span class="inline-block px-1.5 py-0.5 bg-slate-950 border border-slate-850 text-[9px] text-slate-400 rounded uppercase font-bold tracking-wider">${t}</span>`;
-                }).join(' ');
+                // Dynamic extraction logic for extra keys (supporting additional CSV columns custom added)
+                const coreKeys = ['id', 'Name', 'Set', 'Type', 'CMC', 'Colors', 'Price', 'Qty', 'ImageURL', 'ImageURL_Back'];
+                const extraBadges = Object.keys(cardItem)
+                    .filter(key => !coreKeys.includes(key))
+                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${cardItem[key]}</span>`)
+                    .join('');
 
-                // Build DFC flipping controls if double sided
-                const isDoubleSided = card.ImageURL_Back && card.ImageURL_Back.trim() !== '';
-                const flipBadge = isDoubleSided 
-                    ? `<button onclick="flipCard(this)" class="absolute bottom-2 right-2 bg-slate-950/90 text-white hover:bg-indigo-600 border border-slate-800 hover:border-indigo-400 p-2 rounded-full shadow-lg z-25 text-xs transition-colors flex items-center justify-center gap-1">
-                         🔄 Flip over
-                       </button>`
-                    : '';
-
-                return `
-                    <div class="card-row">
-                        <!-- Card View container with 3D perspective -->
-                        <div class="card-perspective w-20 h-28 flex-shrink-0">
-                            <div class="card-inner w-full h-full">
-                                <!-- Front Face -->
-                                <div class="card-front relative w-full h-full">
-                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" 
-                                         class="w-full h-full object-cover rounded-lg shadow-md bg-slate-900">
-                                    ${flipBadge}
+                // Rendering 3D Flipper markup inside grid if backface is registered
+                let mediaFrame = '';
+                if (card.ImageURL_Back) {
+                    mediaFrame = `
+                        <div class="relative overflow-hidden rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
+                            <div id="grid-flipper-${card.id}" class="flipper w-full h-full rounded-lg">
+                                <div class="front-face rounded-lg overflow-hidden">
+                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
-                                <!-- Back Face -->
-                                ${isDoubleSided ? `
-                                <div class="card-back relative w-full h-full">
-                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" 
-                                         class="w-full h-full object-cover rounded-lg shadow-md bg-slate-900">
-                                    ${flipBadge}
+                                <div class="back-face rounded-lg overflow-hidden">
+                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
-                                ` : ''}
+                            </div>
+                            <!-- In-grid flip controls -->
+                            <button onclick="toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-2 right-2 bg-slate-900/90 text-white p-1.5 rounded-full border border-slate-700 text-[10px] hover:bg-slate-800 active:scale-90 transition-transform shadow-md z-10" title="Quick Flip">
+                                🔄 Flip
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    mediaFrame = `
+                        <div class="relative overflow-hidden rounded-lg bg-slate-950 aspect-[5/7] cursor-pointer group mb-3" onclick="openCardModal('${card.id}')">
+                            <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" 
+                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                                <span class="text-white text-xs bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-700">🔍 View Image</span>
                             </div>
                         </div>
-                        
-                        <div class="card-details">
-                            <div class="space-y-1">
-                                <div class="flex justify-between items-start gap-1">
-                                    <h3 class="text-white font-bold text-sm leading-tight truncate max-w-[200px] sm:max-w-xs transition-colors">${card.Name}</h3>
-                                    <div class="flex gap-1 items-center flex-shrink-0">${colorsDisplay}</div>
-                                </div>
-                                <p class="text-slate-500 text-[11px] leading-none">${card.Set}</p>
-                                <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                                    ${typeBadges}
-                                    <span class="text-[9px] text-slate-500">CMC: ${card.CMC}</span>
-                                    <span class="text-[9px] font-black ${stockColor}">QTY: ${card.Qty}</span>
-                                </div>
-                            </div>
+                    `;
+                }
+
+                return `
+                    <div class="card-grid-item flex flex-col p-3 h-full justify-between">
+                        <div>
+                            ${mediaFrame}
                             
-                            <div class="action-bar">
-                                <span class="text-emerald-500 font-black text-lg">
-                                    $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                                </span>
-                                ${buttonMarkup}
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-start gap-1">
+                                    <h3 class="text-white font-bold text-xs leading-snug truncate hover:text-indigo-400 transition-colors" title="${card.Name}">${card.Name}</h3>
+                                    <div class="flex gap-0.5 items-center flex-shrink-0 mt-0.5">${colorsDisplay}</div>
+                                </div>
+                                <p class="text-slate-500 text-[10px] leading-none truncate" title="${card.Set}">${card.Set}</p>
+                                
+                                <div class="flex flex-wrap items-center gap-1">
+                                    ${renderTypeBadges(card.Type)}
+                                    <span class="text-[8px] text-slate-500">CMC:${card.CMC}</span>
+                                    <span class="text-[9px] font-black ${stockColor}">QTY:${card.Qty}</span>
+                                </div>
+                                
+                                ${extraBadges ? `<div class="flex flex-col gap-1 pt-1 border-t border-slate-800/40">${extraBadges}</div>` : ''}
                             </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-t border-slate-800 flex flex-col gap-2">
+                            <span class="text-amber-500 font-black text-base">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            ${buttonMarkup}
                         </div>
                     </div>
                 `;
             }).join('');
+
+            // Only append Load More selector when matching catalog elements exceed paginated size limit
+            if (data.length > displayLimit) {
+                loadMoreContainer.innerHTML = `
+                    <button onclick="loadMoreCards()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-8 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40 text-xs tracking-wider uppercase border border-indigo-500/20">
+                        Load More (${data.length - displayLimit} items remaining)
+                    </button>
+                `;
+            } else {
+                loadMoreContainer.innerHTML = '';
+            }
         }
 
         function addToCart(id) {
-            const card = inventory.find(c => c.id === id);
-            if (!card) return;
+            const rawCard = inventory.find(c => c.id === id);
+            if (!rawCard) return;
 
+            const card = normalizeCard(rawCard);
             const currentInCart = cart.filter(item => item.id === id).length;
 
             if (currentInCart >= card.Qty) {
-                showToast(`Insufficient quantity. Only ${card.Qty} copies left in database!`);
+                showToast(`Unable to add. Only ${card.Qty} copy/copies left in stock!`);
                 return;
             }
 
@@ -841,7 +1027,8 @@
         }
 
         function removeFromCart(index) {
-            const name = cart[index].Name;
+            const card = normalizeCard(cart[index]);
+            const name = card.Name;
             cart.splice(index, 1);
             updateCartQuantity();
             renderCart();
@@ -852,7 +1039,7 @@
             cart = [];
             updateCartQuantity();
             renderCart();
-            showToast('Cleared cart selections.');
+            showToast('Cleared shopping cart.');
         }
 
         function renderCart() {
@@ -874,14 +1061,15 @@
 
             let runningSum = 0;
             cartDisplay.innerHTML = cart.map((item, index) => {
-                runningSum += item.Price;
+                const card = normalizeCard(item);
+                runningSum += card.Price;
                 return `
-                    <div class="flex items-center gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
-                        <img src="${item.ImageURL}" class="w-12 h-16 object-cover rounded shadow-md">
+                    <div class="flex items-center gap-3 bg-[#1e293b] p-3 rounded-xl border border-slate-800">
+                        <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-12 h-16 object-cover rounded shadow-md cursor-zoom-in">
                         <div class="flex-grow min-width-0">
-                            <h4 class="text-white font-bold text-xs truncate">${item.Name}</h4>
-                            <p class="text-[10px] text-slate-500">${item.Set}</p>
-                            <span class="text-emerald-500 font-bold text-sm">$${item.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <h4 class="text-white font-bold text-xs truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${card.id}')">${card.Name}</h4>
+                            <p class="text-[10px] text-slate-500">${card.Set}</p>
+                            <span class="text-amber-500 font-bold text-sm">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <button onclick="removeFromCart(${index})" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
                             🗑️
@@ -899,10 +1087,11 @@
 
             const aggregates = {};
             cart.forEach(item => {
-                if (aggregates[item.id]) {
-                    aggregates[item.id].Qty += 1;
+                const card = normalizeCard(item);
+                if (aggregates[card.id]) {
+                    aggregates[card.id].qty += 1;
                 } else {
-                    aggregates[item.id] = { card: item, Qty: 1 };
+                    aggregates[card.id] = { card: card, qty: 1 };
                 }
             });
 
@@ -913,27 +1102,27 @@
             const receiptContainer = document.getElementById('receipt-items');
             
             const processedItems = Object.values(aggregates).map(item => {
-                const subTotal = item.card.Price * item.Qty;
+                const card = item.card;
+                const subTotal = card.Price * item.qty;
                 totalRecapSum += subTotal;
                 return {
                     markup: `
-                        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-900">
-                            <img src="${item.card.ImageURL}" class="w-10 h-14 object-cover rounded shadow-md">
+                        <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                            <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
                             <div class="flex-grow min-width-0">
-                                <h4 class="text-white text-xs font-bold truncate">${item.card.Name}</h4>
-                                <p class="text-[10px] text-slate-500">${item.card.Set} • Qty: ${item.Qty}</p>
-                                <span class="text-emerald-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                <h4 class="text-white text-xs font-bold truncate">${card.Name}</h4>
+                                <p class="text-[10px] text-slate-500">${card.Set} • Qty Purchased: ${item.qty}</p>
+                                <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
                         </div>
                     `,
                     orderItemRecord: {
-                        id: item.card.id,
-                        Name: item.card.Name,
-                        Set: item.card.Set,
-                        Qty: item.Qty,
-                        Price: item.card.Price,
-                        ImageURL: item.card.ImageURL,
-                        ImageURL_Back: item.card.ImageURL_Back
+                        id: card.id,
+                        Name: card.Name,
+                        Set: card.Set,
+                        qty: item.qty,
+                        Price: card.Price,
+                        ImageURL: card.ImageURL
                     }
                 };
             });
@@ -950,55 +1139,76 @@
 
             if (useFirebase && currentUserState) {
                 try {
-                    // Use a unified atomic Transaction
+                    // Unified lock transaction block on multiple documents to avoid concurrent inventory overselling
                     await runTransaction(db, async (transaction) => {
                         const transactionReads = [];
                         
-                        // Phase 1: Read current server-side stock values under transaction lock
+                        // Phase 1: Retrieve all latest server-side stocks under dynamic transaction lock
                         for (const itemId of Object.keys(aggregates)) {
                             const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
                             const docSnap = await transaction.get(cardRef);
                             transactionReads.push({
                                 ref: cardRef,
                                 snap: docSnap,
-                                requestedQty: aggregates[itemId].Qty,
+                                requestedQty: aggregates[itemId].qty,
                                 name: aggregates[itemId].card.Name
                             });
                         }
 
-                        // Phase 2: Validate stock balances before modifying anything
+                        // Phase 2: Validate available quantities in real-time
                         for (const read of transactionReads) {
                             if (!read.snap.exists()) {
-                                throw new Error(`Card "${read.name}" does not exist in inventory.`);
+                                throw new Error(`The card "${read.name}" was not found in the live catalog database.`);
                             }
-                            const serverQty = parseInt(read.snap.data().Qty || 0);
+                            const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             if (serverQty < read.requestedQty) {
                                 throw new Error(`Insufficient stock for "${read.name}". Available: ${serverQty}. Requested: ${read.requestedQty}.`);
                             }
                         }
 
-                        // Phase 3: Execute updates atomically
+                        // Phase 3: Execute atomic updates
                         for (const read of transactionReads) {
-                            const serverQty = parseInt(read.snap.data().Qty || 0);
+                            const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             transaction.update(read.ref, { Qty: serverQty - read.requestedQty });
                         }
 
-                        // Phase 4: Securely log the purchase receipt order
+                        // Phase 4: Securely log the purchase order reference receipt
                         const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
                         transaction.set(orderRef, orderRecord);
                     });
 
-                    showToast(`Transaction logged successfully: ${poCode}`);
+                    showToast(`Cloud Transaction successfully processed: ${poCode}`);
                 } catch (err) {
-                    console.error("Database transaction checkout failure:", err);
-                    showToast(err.message || "Checkout rejected by server.");
-                    return; // Halt redirect to view-receipt since stock was insufficient
+                    console.error("Database checkout transaction failed:", err);
+                    showToast(err.message || "Checkout rejected due to database lock or out of stock.");
+                    return; // Aborts displaying checkout recap receipt page on block error
                 }
             } else {
+                let outOfStockError = null;
+                for (const itemId of Object.keys(aggregates)) {
+                    const group = aggregates[itemId];
+                    const idx = inventory.findIndex(inv => inv.id === itemId);
+                    if (idx !== -1) {
+                        const invCard = normalizeCard(inventory[idx]);
+                        if (invCard.Qty < group.qty) {
+                            outOfStockError = `Insufficient local stock for "${invCard.Name}". Available: ${invCard.Qty}. Requested: ${group.qty}.`;
+                            break;
+                        }
+                    }
+                }
+
+                if (outOfStockError) {
+                    showToast(outOfStockError);
+                    return;
+                }
+
                 cart.forEach(cartItem => {
-                    const invCard = inventory.find(inv => inv.id === cartItem.id);
-                    if (invCard) {
+                    const normalizedCartItem = normalizeCard(cartItem);
+                    const idx = inventory.findIndex(inv => inv.id === normalizedCartItem.id);
+                    if (idx !== -1) {
+                        const invCard = normalizeCard(inventory[idx]);
                         invCard.Qty = Math.max(0, invCard.Qty - 1);
+                        inventory[idx] = invCard;
                     }
                 });
                 orders.unshift(orderRecord);
@@ -1006,10 +1216,10 @@
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                 localStorage.setItem('magic_kaion_orders', JSON.stringify(orders));
 
-                renderStore();
+                applyFilters();
                 renderAdminList();
                 updateAdminOrdersCount();
-                showToast(`Local transaction logged: ${poCode}`);
+                showToast(`Local backup checkout saved: ${poCode}`);
             }
 
             showView('receipt');
@@ -1031,13 +1241,15 @@
         async function addSingleCard() {
             const Name = document.getElementById('admin-name').value;
             const Set = document.getElementById('admin-set').value;
-            const Type = document.getElementById('admin-type').value || 'Unknown Type';
+            const Type = document.getElementById('admin-type').value;
             const CMC = document.getElementById('admin-cmc').value || '0';
             const Price = parseFloat(document.getElementById('admin-price').value) || 0.00;
             const Qty = parseInt(document.getElementById('admin-qty').value) || 10;
             const colorsInput = document.getElementById('admin-colors').value;
             const ImageURL = document.getElementById('admin-img').value || 'https://cards.scryfall.io/back.png';
-            const ImageURL_Back = document.getElementById('admin-img-back').value || '';
+            
+            // Supporting manual entry back-image injection
+            const ImageURL_Back = prompt("Is this a Double-Faced Card? Enter Back Image URL (optional):") || '';
 
             if (!Name || !Set) {
                 showToast('Card Name and Set are mandatory fields.');
@@ -1046,38 +1258,34 @@
 
             const Colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
             const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
-
-            const newCard = { id: newId, Name, Set, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back };
+            
+            const newCard = normalizeCard({ id: newId, Name, Set, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back });
 
             if (useFirebase && currentUserState) {
                 try {
-                    // Secure path insertion
                     const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newId);
                     await setDoc(cardRef, newCard);
-                    showToast(`${Name} registered persistently.`);
+                    showToast(`${Name} added to live catalog.`);
                 } catch (err) {
-                    console.error("Database save rejected:", err);
-                    showToast("Save rejected by security check.");
+                    console.error("Firestore database write error:", err);
+                    showToast("Failed to upload listing. Check rules.");
                     return;
                 }
             } else {
                 inventory.unshift(newCard);
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
-                renderStore();
+                applyFilters();
                 renderAdminList();
-                showToast(`${Name} saved locally.`);
+                showToast(`${Name} saved to local storage inventory.`);
             }
 
-            // Clean fields
             document.getElementById('admin-name').value = '';
             document.getElementById('admin-set').value = '';
-            document.getElementById('admin-type').value = '';
             document.getElementById('admin-cmc').value = '';
             document.getElementById('admin-price').value = '';
             document.getElementById('admin-qty').value = '10';
             document.getElementById('admin-colors').value = '';
             document.getElementById('admin-img').value = '';
-            document.getElementById('admin-img-back').value = '';
         }
 
         async function removeCardFromInventory(id) {
@@ -1085,40 +1293,70 @@
                 try {
                     const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
                     await deleteDoc(cardRef);
-                    showToast("Database record deleted.");
+                    showToast("Listing deleted from live catalog.");
                 } catch (err) {
-                    console.error("Database deletion failure:", err);
-                    showToast("Deletion rejected by security check.");
+                    console.error("Firestore document deletion error:", err);
+                    showToast("Database deletion failure. Check rules.");
                 }
             } else {
                 inventory = inventory.filter(c => c.id !== id);
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
-                renderStore();
+                applyFilters();
                 renderAdminList();
-                showToast("Local record deleted.");
+                showToast("Listing deleted locally.");
             }
         }
 
         function renderAdminList() {
             const adminList = document.getElementById('admin-inventory-list');
-            adminList.innerHTML = inventory.map(card => `
-                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <div class="flex items-center gap-3">
-                        <img src="${card.ImageURL}" class="w-8 h-12 object-cover rounded shadow">
-                        <div>
-                            <h4 class="text-white text-xs font-bold">${card.Name}</h4>
-                            <p class="text-[10px] text-slate-500">${card.Set} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
+            adminList.innerHTML = inventory.map(normalizeCard).map(card => {
+                return `
+                    <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
+                            <div>
+                                <h4 class="text-white text-xs font-bold">${card.Name}</h4>
+                                <p class="text-[10px] text-slate-500">${card.Set} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
+                            </div>
                         </div>
+                        <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors">
+                            Delete Entry
+                        </button>
                     </div>
-                    <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950/50 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors border border-red-900/40">
-                        Delete
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function triggerCsvImport() {
             document.getElementById('csv-file-input').click();
+        }
+
+        // Custom standard character-by-character RFC 4180 parsing engine
+        function parseCsvLine(text) {
+            let values = [];
+            let insideQuote = false;
+            let currentValue = "";
+            
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let nextChar = text[i + 1];
+                
+                if (char === '"') {
+                    if (insideQuote && nextChar === '"') {
+                        currentValue += '"';
+                        i++; 
+                    } else {
+                        insideQuote = !insideQuote;
+                    }
+                } else if (char === ',' && !insideQuote) {
+                    values.push(currentValue.trim());
+                    currentValue = "";
+                } else {
+                    currentValue += char;
+                }
+            }
+            values.push(currentValue.trim());
+            return values;
         }
 
         async function importInventoryFromCsv(event) {
@@ -1128,30 +1366,49 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const text = e.target.result;
-                const rows = text.split('\n');
+                const rows = text.split('\n').map(r => r.trim()).filter(r => r);
+                if (rows.length < 2) {
+                    showToast('CSV file is empty or missing data rows.');
+                    return;
+                }
+
+                const headers = parseCsvLine(rows[0]);
                 let newInventory = [];
 
                 for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i].trim();
-                    if (!row) continue;
+                    const row = rows[i];
+                    const matches = parseCsvLine(row);
+                    
+                    if (matches.length >= headers.length) {
+                        let cardData = { id: (newInventory.length + 1).toString() };
 
-                    // Regex correctly handles embedded commas within quotes (RFC 4180 parsing)
-                    const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
-                    if (matches.length >= 5) {
-                        const Name = matches[0].replace(/"/g, '').trim();
-                        const Set = matches[1].replace(/"/g, '').trim();
-                        const Type = matches[2].replace(/"/g, '').trim();
-                        const CMC = matches[3].replace(/"/g, '').trim();
-                        const Price = parseFloat(matches[4].replace(/"/g, '')) || 0.00;
-                        const Colors = matches[5] ? matches[5].replace(/"/g, '').toUpperCase().split('|').map(c => c.trim()) : ['C'];
-                        const ImageURL = matches[6] ? matches[6].replace(/"/g, '').trim() : 'https://cards.scryfall.io/back.png';
-                        const ImageURL_Back = matches[7] ? matches[7].replace(/"/g, '').trim() : '';
-                        const Qty = matches[8] ? parseInt(matches[8].replace(/"/g, '')) || 10 : 10;
-
-                        newInventory.push({
-                            id: (newInventory.length + 1).toString(),
-                            Name, Set, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back
+                        headers.forEach((header, index) => {
+                            let value = matches[index];
+                            const lowerHeader = header.toLowerCase();
+                            
+                            if (lowerHeader === 'price') {
+                                cardData.Price = parseFloat(value) || 0.00;
+                            } else if (lowerHeader === 'qty') {
+                                cardData.Qty = parseInt(value) || 0;
+                            } else if (lowerHeader === 'cmc') {
+                                cardData.CMC = value.toString();
+                            } else if (lowerHeader === 'colors') {
+                                cardData.Colors = value ? value.toUpperCase().split('|').map(c => c.trim()) : ['C'];
+                            } else if (lowerHeader === 'imageurl') {
+                                cardData.ImageURL = value;
+                            } else if (lowerHeader === 'imageurl_back') {
+                                cardData.ImageURL_Back = value;
+                            } else if (lowerHeader === 'name') {
+                                cardData.Name = value;
+                            } else if (lowerHeader === 'set') {
+                                cardData.Set = value;
+                            } else if (lowerHeader === 'type') {
+                                cardData.Type = value;
+                            } else {
+                                cardData[header] = value;
+                            }
                         });
+                        newInventory.push(normalizeCard(cardData));
                     }
                 }
 
@@ -1166,34 +1423,50 @@
                                 const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
                                 await setDoc(newCardRef, newCard);
                             }
-                            showToast(`CSV loaded. Overwrote database with ${newInventory.length} entries.`);
+                            showToast(`Successfully synchronized ${newInventory.length} dynamic entries to cloud.`);
                         } catch (err) {
-                            console.error("CSV save error:", err);
-                            showToast("Database synchronization rejected by security check.");
+                            console.error("Firestore dynamic import failure:", err);
+                            showToast("Cloud sync failed. Check database configuration.");
                         }
                     } else {
                         inventory = newInventory;
                         localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
-                        renderStore();
+                        applyFilters();
                         renderAdminList();
-                        showToast(`Locally imported ${newInventory.length} entries.`);
+                        showToast(`Locally imported ${newInventory.length} dynamic entries.`);
                     }
                 } else {
-                    showToast('Invalid CSV format structure.');
+                    showToast('Failure processing CSV layout configuration alignment.');
                 }
             };
             reader.readAsText(file);
         }
 
         function exportInventoryToCsv() {
+            if (inventory.length === 0) {
+                showToast("No data listings to export.");
+                return;
+            }
+
+            const headers = ["Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty"];
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Name,Set,Type,CMC,Price,Colors,ImageURL,ImageURL_Back,QTY\n";
+            csvContent += headers.join(",") + "\n";
 
             inventory.forEach(card => {
-                const name = `"${card.Name.replace(/"/g, '""')}"`;
-                const set = `"${card.Set.replace(/"/g, '""')}"`;
-                const colors = card.Colors ? `"${card.Colors.join('|')}"` : "C";
-                csvContent += `${name},${set},"${card.Type}",${card.CMC},${card.Price},${colors},${card.ImageURL},${card.ImageURL_Back},${card.Qty}\n`;
+                const normalized = normalizeCard(card);
+                const rowValues = headers.map(header => {
+                    let val = normalized[header];
+                    if (header === 'Colors' && Array.isArray(val)) {
+                        return `"${val.join('|')}"`;
+                    }
+                    if (typeof val === 'string') {
+                        if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                            return `"${val.replace(/"/g, '""')}"`;
+                        }
+                    }
+                    return val;
+                });
+                csvContent += rowValues.join(",") + "\n";
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -1207,7 +1480,6 @@
 
         initAuth();
 
-        // Connect functions to the global window space
         window.goHome = goHome;
         window.toggleAdvancedSearch = toggleAdvancedSearch;
         window.showView = showView;
@@ -1226,7 +1498,12 @@
         window.triggerCsvImport = triggerCsvImport;
         window.importInventoryFromCsv = importInventoryFromCsv;
         window.exportInventoryToCsv = exportInventoryToCsv;
+        window.openCardModal = openCardModal;
+        window.closeCardModal = closeCardModal;
         window.copySpecificPo = copySpecificPo;
+        window.loadMoreCards = loadMoreCards;
+        window.toggleModalFlip = toggleModalFlip;
+        window.toggleGridCardFlip = toggleGridCardFlip;
     </script>
 </body>
 </html>
