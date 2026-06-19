@@ -439,18 +439,37 @@
         /**
          * Schema Normalization Layer
          * Guarantees absolute schema compatibility regardless of capitalization,
-         * ensuring perfect sync with the file "magic_kaion_catalog.csv".
+         * avoiding repeated nested calls when objects are already normalized.
          */
-        function normalizeCard(card) {
+        function normalizeCard(card, docId = null) {
             if (!card) return null;
+            
+            // Safe extraction of identifier, protecting against array mapping parameter leakage
+            let finalId = card.id || card.Id || (typeof docId === 'string' ? docId : null);
+            if (!finalId) {
+                finalId = crypto.randomUUID();
+            }
+
+            // Safe extraction of Colors
+            let colors = ['C'];
+            if (Array.isArray(card.Colors)) {
+                colors = card.Colors;
+            } else if (Array.isArray(card.colors)) {
+                colors = card.colors;
+            } else if (typeof card.Colors === 'string' && card.Colors) {
+                colors = card.Colors.split('|').map(c => c.trim());
+            } else if (typeof card.colors === 'string' && card.colors) {
+                colors = card.colors.split('|').map(c => c.trim());
+            }
+
             return {
-                id: card.id ? card.id.toString() : (card.id ? card.id.toString() : crypto.randomUUID()),
+                id: finalId.toString(),
                 Name: card.Name || card.name || 'Unnamed Card',
                 Set: card.Set || card.set || 'Unknown Set',
                 Type: card.Type || card.type || 'Unknown Type',
                 CMC: card.CMC !== undefined ? card.CMC.toString() : (card.cmc !== undefined ? card.cmc.toString() : '0'),
                 Price: parseFloat(card.Price !== undefined ? card.Price : (card.price !== undefined ? card.price : 0.00)) || 0.00,
-                Colors: Array.isArray(card.Colors) ? card.Colors : (Array.isArray(card.colors) ? card.colors : (card.Colors ? card.Colors.split('|') : (card.colors ? card.colors.split('|') : ['C']))),
+                Colors: colors,
                 ImageURL: card.ImageURL || card.img || 'https://cards.scryfall.io/back.png',
                 ImageURL_Back: card.ImageURL_Back || card.img_back || '',
                 Qty: parseInt(card.Qty !== undefined ? card.Qty : (card.qty !== undefined ? card.qty : 0)) || 0
@@ -477,9 +496,9 @@
         function loadLocalFallback(msg = "Local test mode active.") {
             const savedInventory = localStorage.getItem('magic_kaion_inventory');
             if (savedInventory) {
-                inventory = JSON.parse(savedInventory).map(normalizeCard);
+                inventory = JSON.parse(savedInventory).map(c => normalizeCard(c));
             } else {
-                inventory = [...seedInventoryDefaults].map(normalizeCard);
+                inventory = [...seedInventoryDefaults].map(c => normalizeCard(c));
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
             }
 
@@ -549,9 +568,14 @@
             onSnapshot(inventoryCol, (snapshot) => {
                 const items = [];
                 snapshot.forEach(docSnap => {
-                    items.push(normalizeCard(docSnap.data()));
+                    items.push(normalizeCard(docSnap.data(), docSnap.id));
                 });
-                inventory = items.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+                // Sort safely avoiding NaN compares
+                inventory = items.sort((a, b) => {
+                    const numA = parseInt(a.id) || 0;
+                    const numB = parseInt(b.id) || 0;
+                    return numA - numB;
+                });
                 
                 const loader = document.getElementById('loading-overlay');
                 if (loader) loader.classList.add('hidden');
@@ -596,10 +620,9 @@
         }
 
         function openCardModal(cardId) {
-            const rawCard = inventory.find(c => c.id === cardId);
-            if (!rawCard) return;
+            const card = inventory.find(c => c.id === cardId);
+            if (!card) return;
 
-            const card = normalizeCard(rawCard);
             const modal = document.getElementById('card-modal');
             const modalImg = document.getElementById('modal-card-img');
             const modalImgBack = document.getElementById('modal-card-img-back');
@@ -643,6 +666,7 @@
             }
         }
 
+        // Close card zoom modal
         function closeCardModal() {
             const modal = document.getElementById('card-modal');
             modal.classList.add('opacity-0');
@@ -735,7 +759,8 @@
             const typeFilter = document.getElementById('filter-type').value.toLowerCase();
             const cmcFilter = document.getElementById('filter-cmc').value;
 
-            const filteredData = inventory.map(normalizeCard).filter(card => {
+            // Direct filtering on clean, already-normalized database state
+            const filteredData = inventory.filter(card => {
                 const cardName = card.Name.toLowerCase();
                 const cardSet = card.Set.toLowerCase();
                 const cardType = card.Type.toLowerCase();
@@ -800,7 +825,7 @@
                     showToast("Sync Error: Verify Firestore console rules.");
                 }
             } else {
-                inventory = inventory.map(normalizeCard).map(card => {
+                inventory = inventory.map(card => {
                     card.Qty = 10;
                     return card;
                 });
@@ -835,7 +860,7 @@
 
             listContainer.innerHTML = orders.map(order => {
                 const itemsMarkup = (order.items || []).map(item => {
-                    // Normalize casing dynamically to avoid TypeError crashes on legacy DB records
+                    // Safe key casing fallback layer
                     const itemPrice = parseFloat(item.Price !== undefined ? item.Price : (item.price !== undefined ? item.price : 0)) || 0;
                     const itemName = item.Name || item.name || 'Unnamed Card';
                     const itemSet = item.Set || item.set || '';
@@ -879,6 +904,7 @@
             }).join('');
         }
 
+        // Secure copy utility bypasses sandbox restrictions
         function copyTextToClipboard(text) {
             if (!text) return false;
             let success = false;
@@ -889,7 +915,7 @@
                 tempInput.style.opacity = "0";
                 document.body.appendChild(tempInput);
                 tempInput.select();
-                tempInput.setSelectionRange(0, 99999); // Safe responsive focus selector
+                tempInput.setSelectionRange(0, 99999);
                 success = document.execCommand("copy");
                 document.body.removeChild(tempInput);
             } catch (err) {
@@ -915,10 +941,9 @@
         }
 
         function addToCart(id) {
-            const rawCard = inventory.find(c => c.id === id);
-            if (!rawCard) return;
+            const card = inventory.find(c => c.id === id);
+            if (!card) return;
 
-            const card = normalizeCard(rawCard);
             const currentInCart = cart.filter(item => item.id === id).length;
 
             if (currentInCart >= card.Qty) {
@@ -942,7 +967,7 @@
         }
 
         function removeFromCart(index) {
-            const card = normalizeCard(cart[index]);
+            const card = cart[index];
             const name = card.Name;
             cart.splice(index, 1);
             updateCartQuantity();
@@ -957,6 +982,115 @@
             showToast('Cleared shopping cart.');
         }
 
+        function renderStore(data = inventory) {
+            currentFilteredData = data;
+            const storeDisplay = document.getElementById('store-display');
+            const loadMoreContainer = document.getElementById('load-more-container');
+
+            if (data.length === 0) {
+                storeDisplay.innerHTML = `
+                    <div class="col-span-full text-center py-16 text-slate-500">
+                        <span class="text-4xl block mb-2">🃏</span>No cards match your filters.
+                    </div>
+                `;
+                loadMoreContainer.innerHTML = '';
+                return;
+            }
+
+            const paginatedData = data.slice(0, displayLimit);
+
+            storeDisplay.innerHTML = paginatedData.map(card => {
+                const colorsDisplay = card.Colors.map(c => {
+                    let colorClass = 'bg-slate-500';
+                    if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
+                    if (c === 'U') colorClass = 'bg-blue-600 text-white';
+                    if (c === 'B') colorClass = 'bg-neutral-800 text-slate-200 border border-slate-700';
+                    if (c === 'R') colorClass = 'bg-red-600 text-white';
+                    if (c === 'G') colorClass = 'bg-green-600 text-white';
+                    return `<span class="inline-block w-2 h-2 rounded-full ${colorClass}"></span>`;
+                }).join('');
+
+                const isOutOfStock = card.Qty <= 0;
+                const buttonMarkup = isOutOfStock 
+                    ? `<button disabled class="w-full bg-slate-800 text-slate-500 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
+                    : `<button onclick="addToCart('${card.id}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add to Cart</button>`;
+
+                const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
+
+                // Extract dynamic custom columns
+                const coreKeys = ['id', 'Name', 'Set', 'Type', 'CMC', 'Colors', 'Price', 'Qty', 'ImageURL', 'ImageURL_Back'];
+                const extraBadges = Object.keys(card)
+                    .filter(key => !coreKeys.includes(key))
+                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${card[key]}</span>`)
+                    .join('');
+
+                let mediaFrame = '';
+                if (card.ImageURL_Back) {
+                    mediaFrame = `
+                        <div class="relative overflow-hidden rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
+                            <div id="grid-flipper-${card.id}" class="flipper w-full h-full rounded-lg">
+                                <div class="front-face rounded-lg overflow-hidden">
+                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
+                                </div>
+                                <div class="back-face rounded-lg overflow-hidden">
+                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            <button onclick="toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-2 right-2 bg-slate-900/90 text-white p-1.5 rounded-full border border-slate-700 text-[10px] hover:bg-slate-800 active:scale-90 transition-transform shadow-md z-10" title="Quick Flip">
+                                🔄 Flip
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    mediaFrame = `
+                        <div class="relative overflow-hidden rounded-lg bg-slate-950 aspect-[5/7] cursor-pointer group mb-3" onclick="openCardModal('${card.id}')">
+                            <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" 
+                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                                <span class="text-white text-xs bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-700">🔍 View Image</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="card-grid-item flex flex-col p-3 h-full justify-between">
+                        <div>
+                            ${mediaFrame}
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-start gap-1">
+                                    <h3 class="text-white font-bold text-xs leading-snug truncate hover:text-indigo-400 transition-colors" title="${card.Name}">${card.Name}</h3>
+                                    <div class="flex gap-0.5 items-center flex-shrink-0 mt-0.5">${colorsDisplay}</div>
+                                </div>
+                                <p class="text-slate-500 text-[10px] leading-none truncate" title="${card.Set}">${card.Set}</p>
+                                <div class="flex flex-wrap items-center gap-1">
+                                    ${renderTypeBadges(card.Type)}
+                                    <span class="text-[8px] text-slate-500">CMC:${card.CMC}</span>
+                                    <span class="text-[9px] font-black ${stockColor}">QTY:${card.Qty}</span>
+                                </div>
+                                ${extraBadges ? `<div class="flex flex-col gap-1 pt-1 border-t border-slate-800/40">${extraBadges}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="pt-3 mt-3 border-t border-slate-800 flex flex-col gap-2">
+                            <span class="text-amber-500 font-black text-base">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            ${buttonMarkup}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (data.length > displayLimit) {
+                loadMoreContainer.innerHTML = `
+                    <button onclick="loadMoreCards()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-8 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40 text-xs tracking-wider uppercase border border-indigo-500/20">
+                        Load More (${data.length - displayLimit} items remaining)
+                    </button>
+                `;
+            } else {
+                loadMoreContainer.innerHTML = '';
+            }
+        }
+
+        // Render cart list page
         function renderCart() {
             const cartDisplay = document.getElementById('cart-display');
             const emptyMessage = document.getElementById('cart-empty-message');
@@ -975,8 +1109,7 @@
             totalContainer.classList.remove('hidden');
 
             let runningSum = 0;
-            cartDisplay.innerHTML = cart.map((item, index) => {
-                const card = normalizeCard(item);
+            cartDisplay.innerHTML = cart.map((card, index) => {
                 runningSum += card.Price;
                 return `
                     <div class="flex items-center gap-3 bg-[#1e293b] p-3 rounded-xl border border-slate-800">
@@ -1001,8 +1134,7 @@
             if (cart.length === 0) return;
 
             const aggregates = {};
-            cart.forEach(item => {
-                const card = normalizeCard(item);
+            cart.forEach(card => {
                 if (aggregates[card.id]) {
                     aggregates[card.id].qty += 1;
                 } else {
@@ -1054,11 +1186,11 @@
 
             if (useFirebase && currentUserState) {
                 try {
-                    // Unified lock transaction block on multiple documents to avoid concurrent inventory overselling
+                    // Lock resources inside a transaction to prevent race conditions
                     await runTransaction(db, async (transaction) => {
                         const transactionReads = [];
                         
-                        // Phase 1: Retrieve all latest server-side stocks under dynamic transaction lock
+                        // Retrieve latest items under atomic database lock
                         for (const itemId of Object.keys(aggregates)) {
                             const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
                             const docSnap = await transaction.get(cardRef);
@@ -1066,28 +1198,28 @@
                                 ref: cardRef,
                                 snap: docSnap,
                                 requestedQty: aggregates[itemId].qty,
-                                name: aggregates[itemId].card.Name
+                                Name: aggregates[itemId].card.Name
                             });
                         }
 
-                        // Phase 2: Validate available quantities in real-time
+                        // Verify stocks inside transaction block
                         for (const read of transactionReads) {
                             if (!read.snap.exists()) {
-                                throw new Error(`The card "${read.name}" was not found in the live catalog database.`);
+                                throw new Error(`The card "${read.Name}" was not found in the live catalog database.`);
                             }
                             const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             if (serverQty < read.requestedQty) {
-                                throw new Error(`Insufficient stock for "${read.name}". Available: ${serverQty}. Requested: ${read.requestedQty}.`);
+                                throw new Error(`Insufficient stock for "${read.Name}". Available: ${serverQty}. Requested: ${read.requestedQty}.`);
                             }
                         }
 
-                        // Phase 3: Execute atomic updates
+                        // Write changes inside transaction block
                         for (const read of transactionReads) {
                             const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             transaction.update(read.ref, { Qty: serverQty - read.requestedQty });
                         }
 
-                        // Phase 4: Securely log the purchase order reference receipt
+                        // Create the secure purchase order
                         const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
                         transaction.set(orderRef, orderRecord);
                     });
@@ -1096,7 +1228,7 @@
                 } catch (err) {
                     console.error("Database checkout transaction failed:", err);
                     showToast(err.message || "Checkout rejected due to database lock or out of stock.");
-                    return; // Aborts displaying checkout recap receipt page on block error
+                    return; 
                 }
             } else {
                 let outOfStockError = null;
@@ -1104,7 +1236,7 @@
                     const group = aggregates[itemId];
                     const idx = inventory.findIndex(inv => inv.id === itemId);
                     if (idx !== -1) {
-                        const invCard = normalizeCard(inventory[idx]);
+                        const invCard = inventory[idx];
                         if (invCard.Qty < group.qty) {
                             outOfStockError = `Insufficient local stock for "${invCard.Name}". Available: ${invCard.Qty}. Requested: ${group.qty}.`;
                             break;
@@ -1118,10 +1250,9 @@
                 }
 
                 cart.forEach(cartItem => {
-                    const normalizedCartItem = normalizeCard(cartItem);
-                    const idx = inventory.findIndex(inv => inv.id === normalizedCartItem.id);
+                    const idx = inventory.findIndex(inv => inv.id === cartItem.id);
                     if (idx !== -1) {
-                        const invCard = normalizeCard(inventory[idx]);
+                        const invCard = inventory[idx];
                         invCard.Qty = Math.max(0, invCard.Qty - 1);
                         inventory[idx] = invCard;
                     }
@@ -1161,7 +1292,6 @@
             const colorsInput = document.getElementById('admin-colors').value;
             const ImageURL = document.getElementById('admin-img').value || 'https://cards.scryfall.io/back.png';
             
-            // Supporting manual entry back-image injection
             const ImageURL_Back = prompt("Is this a Double-Faced Card? Enter Back Image URL (optional):") || '';
 
             if (!Name || !Set) {
@@ -1222,7 +1352,7 @@
 
         function renderAdminList() {
             const adminList = document.getElementById('admin-inventory-list');
-            adminList.innerHTML = inventory.map(normalizeCard).map(card => {
+            adminList.innerHTML = inventory.map(card => {
                 return `
                     <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
                         <div class="flex items-center gap-3">
@@ -1366,9 +1496,8 @@
             csvContent += headers.join(",") + "\n";
 
             inventory.forEach(card => {
-                const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
-                    let val = normalized[header];
+                    let val = card[header];
                     if (header === 'Colors' && Array.isArray(val)) {
                         return `"${val.join('|')}"`;
                     }
