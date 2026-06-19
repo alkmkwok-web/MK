@@ -29,9 +29,11 @@
             height: 100%;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
         }
         .flipper.flipped {
             transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
         }
         .front-face, .back-face {
             position: absolute;
@@ -43,8 +45,13 @@
             left: 0;
             border-radius: inherit;
         }
+        .front-face {
+            transform: rotateY(0deg);
+            -webkit-transform: rotateY(0deg);
+        }
         .back-face {
             transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
         }
         
         /* Grid Card Styling */
@@ -338,12 +345,6 @@
                 <button onclick="addSingleCard()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all active:scale-95">
                     Save New Item to Inventory
                 </button>
-            </div>
-
-            <!-- Current Inventory Management List -->
-            <div class="space-y-3">
-                <h3 class="font-black text-white text-sm uppercase tracking-wider">Current Stock List</h3>
-                <div id="admin-inventory-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
             </div>
         </div>
     </main>
@@ -997,9 +998,11 @@
                 return;
             }
 
+            // Paginate local view to 20 element chunks at once
             const paginatedData = data.slice(0, displayLimit);
 
-            storeDisplay.innerHTML = paginatedData.map(card => {
+            storeDisplay.innerHTML = paginatedData.map(cardItem => {
+                const card = normalizeCard(cardItem);
                 const colorsDisplay = card.Colors.map(c => {
                     let colorClass = 'bg-slate-500';
                     if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
@@ -1017,25 +1020,27 @@
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Extract dynamic custom columns
+                // Dynamic extraction logic for extra keys (supporting additional CSV columns custom added)
                 const coreKeys = ['id', 'Name', 'Set', 'Type', 'CMC', 'Colors', 'Price', 'Qty', 'ImageURL', 'ImageURL_Back'];
-                const extraBadges = Object.keys(card)
+                const extraBadges = Object.keys(cardItem)
                     .filter(key => !coreKeys.includes(key))
-                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${card[key]}</span>`)
+                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${cardItem[key]}</span>`)
                     .join('');
 
+                // Rendering 3D Flipper markup inside grid if backface is registered
                 let mediaFrame = '';
                 if (card.ImageURL_Back) {
                     mediaFrame = `
-                        <div class="relative overflow-hidden rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
+                        <div class="relative rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
                             <div id="grid-flipper-${card.id}" class="flipper w-full h-full rounded-lg">
-                                <div class="front-face rounded-lg overflow-hidden">
+                                <div class="front-face rounded-lg overflow-hidden bg-slate-950">
                                     <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
-                                <div class="back-face rounded-lg overflow-hidden">
+                                <div class="back-face rounded-lg overflow-hidden bg-slate-950">
                                     <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
                             </div>
+                            <!-- In-grid flip controls -->
                             <button onclick="toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-2 right-2 bg-slate-900/90 text-white p-1.5 rounded-full border border-slate-700 text-[10px] hover:bg-slate-800 active:scale-90 transition-transform shadow-md z-10" title="Quick Flip">
                                 🔄 Flip
                             </button>
@@ -1352,7 +1357,8 @@
 
         function renderAdminList() {
             const adminList = document.getElementById('admin-inventory-list');
-            adminList.innerHTML = inventory.map(card => {
+            if (!adminList) return; // Safely return if the UI section has been removed
+            adminList.innerHTML = inventory.map(normalizeCard).map(card => {
                 return `
                     <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
                         <div class="flex items-center gap-3">
