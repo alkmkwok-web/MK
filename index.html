@@ -834,29 +834,42 @@
             }
 
             listContainer.innerHTML = orders.map(order => {
-                const itemsMarkup = order.items.map(item => `
-                    <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
-                        <img src="${item.ImageURL || 'https://cards.scryfall.io/back.png'}" onclick="openCardModal('${item.id}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
-                        <div class="min-width-0 flex-grow">
-                            <p class="text-white text-[11px] font-bold truncate">${item.Name}</p>
-                            <p class="text-[9px] text-slate-500">${item.Set || ''} • Qty: ${item.qty} • $${item.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                const itemsMarkup = (order.items || []).map(item => {
+                    // Normalize casing dynamically to avoid TypeError crashes on legacy DB records
+                    const itemPrice = parseFloat(item.Price !== undefined ? item.Price : (item.price !== undefined ? item.price : 0)) || 0;
+                    const itemName = item.Name || item.name || 'Unnamed Card';
+                    const itemSet = item.Set || item.set || '';
+                    const itemQty = parseInt(item.qty !== undefined ? item.qty : (item.Qty !== undefined ? item.Qty : 1)) || 1;
+                    const itemImg = item.ImageURL || item.img || 'https://cards.scryfall.io/back.png';
+
+                    return `
+                        <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
+                            <img src="${itemImg}" onclick="openCardModal('${item.id || ''}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
+                            <div class="min-width-0 flex-grow">
+                                <p class="text-white text-[11px] font-bold truncate">${itemName}</p>
+                                <p class="text-[9px] text-slate-500">${itemSet} • Qty: ${itemQty} • $${itemPrice.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
+
+                const orderTotal = parseFloat(order.total !== undefined ? order.total : 0) || 0;
+                const poCode = order.poCode || 'Unknown PO';
+                const orderDate = order.date || 'Unknown Date';
 
                 return `
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
                         <div class="flex justify-between items-start gap-2 border-b border-slate-800/80 pb-2">
                             <div>
-                                <span onclick="copySpecificPo('${order.poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
-                                    ${order.poCode} <span class="text-[10px]">📋</span>
+                                <span onclick="copySpecificPo('${poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
+                                    ${poCode} <span class="text-[10px]">📋</span>
                                 </span>
-                                <span class="text-[9px] text-slate-500 block mt-0.5">${order.date}</span>
+                                <span class="text-[9px] text-slate-500 block mt-0.5">${orderDate}</span>
                             </div>
-                            <span class="text-emerald-500 font-bold text-sm">$${order.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <span class="text-emerald-500 font-bold text-sm">$${orderTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <div class="space-y-1.5">
-                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items (${order.items.reduce((acc, i) => acc + i.qty, 0)})</span>
+                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items</span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                                 ${itemsMarkup}
                             </div>
@@ -866,136 +879,38 @@
             }).join('');
         }
 
-        function copySpecificPo(poCode) {
-            const tempInput = document.createElement("input");
-            tempInput.value = poCode;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            showToast(`Copied ${poCode} to clipboard!`);
-        }
-
-        // Increments showing index offsets and triggers render store update
-        function loadMoreCards() {
-            displayLimit += 20;
-            renderStore(currentFilteredData);
-        }
-
-        function renderStore(data = inventory) {
-            currentFilteredData = data;
-            const storeDisplay = document.getElementById('store-display');
-            const loadMoreContainer = document.getElementById('load-more-container');
-
-            if (data.length === 0) {
-                storeDisplay.innerHTML = `
-                    <div class="col-span-full text-center py-16 text-slate-500">
-                        <span class="text-4xl block mb-2">🃏</span>No cards match your filters.
-                    </div>
-                `;
-                loadMoreContainer.innerHTML = '';
-                return;
+        function copyTextToClipboard(text) {
+            if (!text) return false;
+            let success = false;
+            try {
+                const tempInput = document.createElement("input");
+                tempInput.value = text;
+                tempInput.style.position = "fixed";
+                tempInput.style.opacity = "0";
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                tempInput.setSelectionRange(0, 99999); // Safe responsive focus selector
+                success = document.execCommand("copy");
+                document.body.removeChild(tempInput);
+            } catch (err) {
+                console.error("execCommand fallback copy failed", err);
             }
-
-            // Paginate local view to 20 element chunks at once
-            const paginatedData = data.slice(0, displayLimit);
-
-            storeDisplay.innerHTML = paginatedData.map(cardItem => {
-                const card = normalizeCard(cardItem);
-                const colorsDisplay = card.Colors.map(c => {
-                    let colorClass = 'bg-slate-500';
-                    if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
-                    if (c === 'U') colorClass = 'bg-blue-600 text-white';
-                    if (c === 'B') colorClass = 'bg-neutral-800 text-slate-200 border border-slate-700';
-                    if (c === 'R') colorClass = 'bg-red-600 text-white';
-                    if (c === 'G') colorClass = 'bg-green-600 text-white';
-                    return `<span class="inline-block w-2 h-2 rounded-full ${colorClass}"></span>`;
-                }).join('');
-
-                const isOutOfStock = card.Qty <= 0;
-                const buttonMarkup = isOutOfStock 
-                    ? `<button disabled class="w-full bg-slate-800 text-slate-500 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
-                    : `<button onclick="addToCart('${card.id}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add to Cart</button>`;
-
-                const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
-
-                // Dynamic extraction logic for extra keys (supporting additional CSV columns custom added)
-                const coreKeys = ['id', 'Name', 'Set', 'Type', 'CMC', 'Colors', 'Price', 'Qty', 'ImageURL', 'ImageURL_Back'];
-                const extraBadges = Object.keys(cardItem)
-                    .filter(key => !coreKeys.includes(key))
-                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${cardItem[key]}</span>`)
-                    .join('');
-
-                // Rendering 3D Flipper markup inside grid if backface is registered
-                let mediaFrame = '';
-                if (card.ImageURL_Back) {
-                    mediaFrame = `
-                        <div class="relative overflow-hidden rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
-                            <div id="grid-flipper-${card.id}" class="flipper w-full h-full rounded-lg">
-                                <div class="front-face rounded-lg overflow-hidden">
-                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
-                                </div>
-                                <div class="back-face rounded-lg overflow-hidden">
-                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
-                                </div>
-                            </div>
-                            <!-- In-grid flip controls -->
-                            <button onclick="toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-2 right-2 bg-slate-900/90 text-white p-1.5 rounded-full border border-slate-700 text-[10px] hover:bg-slate-800 active:scale-90 transition-transform shadow-md z-10" title="Quick Flip">
-                                🔄 Flip
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    mediaFrame = `
-                        <div class="relative overflow-hidden rounded-lg bg-slate-950 aspect-[5/7] cursor-pointer group mb-3" onclick="openCardModal('${card.id}')">
-                            <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" 
-                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                                <span class="text-white text-xs bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-700">🔍 View Image</span>
-                            </div>
-                        </div>
-                    `;
+            if (!success) {
+                try {
+                    navigator.clipboard.writeText(text);
+                    success = true;
+                } catch (err) {
+                    console.error("Navigator clipboard copy failed", err);
                 }
+            }
+            return success;
+        }
 
-                return `
-                    <div class="card-grid-item flex flex-col p-3 h-full justify-between">
-                        <div>
-                            ${mediaFrame}
-                            
-                            <div class="space-y-1.5">
-                                <div class="flex justify-between items-start gap-1">
-                                    <h3 class="text-white font-bold text-xs leading-snug truncate hover:text-indigo-400 transition-colors" title="${card.Name}">${card.Name}</h3>
-                                    <div class="flex gap-0.5 items-center flex-shrink-0 mt-0.5">${colorsDisplay}</div>
-                                </div>
-                                <p class="text-slate-500 text-[10px] leading-none truncate" title="${card.Set}">${card.Set}</p>
-                                
-                                <div class="flex flex-wrap items-center gap-1">
-                                    ${renderTypeBadges(card.Type)}
-                                    <span class="text-[8px] text-slate-500">CMC:${card.CMC}</span>
-                                    <span class="text-[9px] font-black ${stockColor}">QTY:${card.Qty}</span>
-                                </div>
-                                
-                                ${extraBadges ? `<div class="flex flex-col gap-1 pt-1 border-t border-slate-800/40">${extraBadges}</div>` : ''}
-                            </div>
-                        </div>
-
-                        <div class="pt-3 mt-3 border-t border-slate-800 flex flex-col gap-2">
-                            <span class="text-amber-500 font-black text-base">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                            ${buttonMarkup}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Only append Load More selector when matching catalog elements exceed paginated size limit
-            if (data.length > displayLimit) {
-                loadMoreContainer.innerHTML = `
-                    <button onclick="loadMoreCards()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-8 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40 text-xs tracking-wider uppercase border border-indigo-500/20">
-                        Load More (${data.length - displayLimit} items remaining)
-                    </button>
-                `;
+        function copySpecificPo(poCode) {
+            if (copyTextToClipboard(poCode)) {
+                showToast(`Copied ${poCode} to clipboard!`);
             } else {
-                loadMoreContainer.innerHTML = '';
+                showToast("Failed to copy. Please manually copy code.");
             }
         }
 
@@ -1229,13 +1144,11 @@
 
         function copyPoNumber() {
             const poText = document.getElementById('receipt-po-number').innerText;
-            const tempInput = document.createElement("input");
-            tempInput.value = poText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            showToast(`Copied ${poText} to clipboard!`);
+            if (copyTextToClipboard(poText)) {
+                showToast(`Copied ${poText} to clipboard!`);
+            } else {
+                showToast("Failed to copy. Please copy manually.");
+            }
         }
 
         async function addSingleCard() {
