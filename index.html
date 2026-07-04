@@ -23,6 +23,7 @@
         .flip-container {
             perspective: 1000px;
             -webkit-perspective: 1000px;
+            position: relative;
         }
         .flipper {
             position: absolute;
@@ -41,17 +42,17 @@
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
             border-radius: inherit;
+            /* Force hardware GPU acceleration layers for buttery-smooth performance */
             transform: translate3d(0, 0, 0);
             -webkit-transform: translate3d(0, 0, 0);
         }
         .front-face {
-            transform: rotateY(0deg) translate3d(0, 0, 0);
-            -webkit-transform: rotateY(0deg) translate3d(0, 0, 0);
-            z-index: 2;
+            transform: rotateY(0deg);
+            -webkit-transform: rotateY(0deg);
         }
         .back-face {
-            transform: rotateY(180deg) translate3d(0, 0, 0);
-            -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
+            transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
         }
         
         /* Grid Card Styling */
@@ -103,6 +104,7 @@
 </head>
 <body>
 
+    <!-- Connection Overlay Loading Notice -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4">
         <div class="flex items-center gap-2 mb-4 animate-pulse">
             <span class="text-amber-400 text-3xl">✨</span>
@@ -150,6 +152,7 @@
         </div>
     </nav>
 
+    <!-- Advanced Search Drawer Panel -->
     <div id="advanced-search-panel" class="hidden bg-[#1e293b] border-b border-slate-800 p-4 shadow-2xl">
         <div class="max-w-4xl mx-auto space-y-4">
             <div>
@@ -361,11 +364,11 @@
             <!-- 3D Card flipper frame for modal viewing -->
             <div class="w-full aspect-[5/7] max-h-[65vh] flip-container mb-4 relative" style="width: 290px; height: 406px;">
                 <div id="modal-flipper" class="flipper w-full h-full rounded-2xl">
-                    <div class="front-face rounded-2xl overflow-hidden bg-slate-950">
-                        <img id="modal-card-img" src="" alt="Zoomed Front View" class="w-full h-full border border-slate-700 object-cover">
+                    <div class="front-face rounded-2xl bg-slate-950">
+                        <img id="modal-card-img" src="" alt="Zoomed Front View" class="w-full h-full border border-slate-700 object-cover rounded-2xl">
                     </div>
-                    <div class="back-face rounded-2xl overflow-hidden bg-slate-950">
-                        <img id="modal-card-img-back" src="" alt="Zoomed Back View" class="w-full h-full border border-slate-700 object-cover">
+                    <div class="back-face rounded-2xl bg-slate-950">
+                        <img id="modal-card-img-back" src="" alt="Zoomed Back View" class="w-full h-full border border-slate-700 object-cover rounded-2xl">
                     </div>
                 </div>
             </div>
@@ -1033,11 +1036,11 @@
                     mediaFrame = `
                         <div class="relative rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
                             <div id="grid-flipper-${card.id}" class="flipper rounded-lg">
-                                <div class="front-face rounded-lg overflow-hidden bg-slate-950">
-                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
+                                <div class="front-face rounded-lg bg-slate-950">
+                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover rounded-lg">
                                 </div>
-                                <div class="back-face rounded-lg overflow-hidden bg-slate-950">
-                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
+                                <div class="back-face rounded-lg bg-slate-950">
+                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover rounded-lg">
                                 </div>
                             </div>
                             <!-- In-grid flip controls -->
