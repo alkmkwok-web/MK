@@ -4,68 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Magic Kaion | Premium MTG Marketplace</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #cbd5e1;
-            --accent: #f59e0b;
+            --bg: #0b0f19;
+            --card-bg: #151d30;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-gold: #f59e0b;
+            --accent-indigo: #6366f1;
         }
-        body { 
-            background-color: var(--bg); 
-            color: var(--text); 
-            overflow-x: hidden; 
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .font-magic {
+            font-family: 'Cinzel', serif;
         }
 
         /* Perspective viewport for realistic 3D flipping depth */
         .flip-container {
-            perspective: 1000px;
-            -webkit-perspective: 1000px;
+            perspective: 1200px;
+            -webkit-perspective: 1200px;
             position: relative;
         }
+        
         .flipper {
             position: absolute;
             inset: 0;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
             -webkit-transform-style: preserve-3d;
         }
+        
         .flipper.flipped {
             transform: rotateY(180deg);
-            -webkit-transform: rotateY(180deg);
+            -webkit-rotateY(180deg);
         }
+        
         .front-face, .back-face {
             position: absolute;
             inset: 0;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
             border-radius: inherit;
-            /* Force hardware GPU acceleration layers for buttery-smooth performance */
             transform: translate3d(0, 0, 0);
             -webkit-transform: translate3d(0, 0, 0);
         }
+        
         .front-face {
             transform: rotateY(0deg);
-            -webkit-transform: rotateY(0deg);
-        }
-        .back-face {
-            transform: rotateY(180deg);
-            -webkit-transform: rotateY(180deg);
+            -webkit-rotateY(0deg);
         }
         
-        /* Grid Card Styling */
+        .back-face {
+            transform: rotateY(180deg);
+            -webkit-rotateY(180deg);
+        }
+        
+        /* Premium custom glowing borders and shadows */
         .card-grid-item {
             background: var(--card-bg);
             border-radius: 16px;
-            border: 1px solid #334155;
-            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            border: 1px solid #1e293b;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
         .card-grid-item:hover {
-            border-color: #4f46e5;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent-indigo);
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.15), 0 10px 15px -5px rgba(0, 0, 0, 0.5);
         }
 
         .nav-container {
@@ -73,107 +89,127 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
         }
 
         .color-dot {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 11px;
+            font-size: 13px;
             cursor: pointer;
-            transition: transform 0.15s, border-color 0.15s;
+            transition: all 0.2s ease;
             border: 2px solid transparent;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
         }
+        
+        .color-dot:hover {
+            transform: scale(1.1);
+        }
+        
         .color-dot:active {
-            transform: scale(0.9);
+            transform: scale(0.95);
         }
 
-        /* Prevent background scroll when modal is active */
         .modal-open {
             overflow: hidden;
         }
 
-        ::-webkit-scrollbar { display: none; }
-    </style>
-</head>
-<body>
+        /* Glassmorphic backdrop styling */
+        .glass-panel {
+            background: rgba(21, 29, 48, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-    <!-- Connection Overlay Loading Notice -->
-    <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4">
-        <div class="flex items-center gap-2 mb-4 animate-pulse">
-            <span class="text-amber-400 text-3xl">✨</span>
-            <span class="text-white font-black text-2xl tracking-tighter uppercase">Magic Kaion</span>
-        </div>
-        <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
-            <div class="h-full bg-indigo-500 rounded-full w-1/2 animate-infinite-scroll" style="animation: loading-bar 1.5s infinite ease-in-out"></div>
-        </div>
-        <p id="loader-status" class="text-xs text-slate-500 mt-4 tracking-wider uppercase font-medium">Syncing cloud database anonymously...</p>
-    </div>
-
-    <style>
-        @keyframes loading-bar {
-            0 { transform: translateX(-100%); }
-            100% { transform: translateX(200%); }
+        /* Hide global scrollbars for a clean immersive screen feeling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-indigo);
         }
     </style>
+</head>
+<body class="selection:bg-indigo-500/30 selection:text-indigo-200">
 
-    <nav class="sticky top-0 z-40 bg-[#020617] border-b border-slate-800 px-4 py-3 shadow-2xl">
+    <div id="loading-overlay" class="fixed inset-0 bg-[#070a12] z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+        <div class="flex flex-col items-center gap-3 mb-6 animate-pulse">
+            <span class="text-amber-400 text-5xl filter drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">✨</span>
+            <span class="text-white font-black text-3xl tracking-wider uppercase font-magic mt-2">Magic Kaion</span>
+            <div class="h-[2px] w-24 bg-gradient-to-r from-transparent via-indigo-500 to-transparent mt-1"></div>
+        </div>
+        <div class="w-48 h-1 bg-slate-900 rounded-full overflow-hidden">
+            <div id="loader-bar" class="h-full bg-indigo-500 rounded-full w-1/3 transition-all duration-300"></div>
+        </div>
+        <p id="loader-status" class="text-[10px] text-slate-500 mt-5 tracking-widest uppercase font-semibold">Syncing cloud database anonymously...</p>
+    </div>
+
+    <nav class="sticky top-0 z-40 bg-[#070a12]/95 backdrop-blur-md border-b border-slate-900 px-4 py-4 shadow-2xl transition-all duration-200">
         <div class="nav-container">
-            <div class="flex flex-col flex-shrink-0">
+            <div class="flex flex-col flex-shrink-0 cursor-pointer select-none" onclick="goHome()">
                 <div class="flex items-center gap-2">
-                    <span class="text-amber-400 text-xl">✨</span>
-                    <span class="text-white font-black text-lg tracking-tighter uppercase select-none">Magic Kaion</span>
+                    <span class="text-amber-400 text-xl filter drop-shadow-md">✨</span>
+                    <span class="text-white font-black text-xl tracking-tight uppercase font-magic">Magic Kaion</span>
                 </div>
-                <!-- Realtime connection tag -->
-                <span id="cloud-status-tag" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Connecting...</span>
+                <span id="cloud-status-tag" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Connecting...</span>
             </div>
 
-            <div class="flex gap-4 sm:gap-6 ml-2">
-                <button id="nav-browse" onclick="goHome()" class="flex flex-col items-center text-[10px] text-amber-500 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">🏠</span>Browse
+            <!-- Main Navigation Links -->
+            <div class="flex gap-4 sm:gap-8 ml-2">
+                <button id="nav-browse" onclick="goHome()" class="flex flex-col items-center text-[10px] text-amber-500 font-bold gap-1 transition-colors group">
+                    <span class="text-lg transition-transform group-hover:scale-110">🏠</span>Browse
                 </button>
-                <button id="nav-search" onclick="toggleAdvancedSearch()" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">🔍</span>Advanced Search
+                <button id="nav-search" onclick="toggleAdvancedSearch()" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-1 transition-colors group">
+                    <span class="text-lg transition-transform group-hover:scale-110">🔍</span>Search Filters
                 </button>
-                <button id="nav-admin" onclick="showView('admin')" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">⚙️</span>Admin
+                <button id="nav-admin" onclick="showView('admin')" class="flex flex-col items-center text-[10px] text-slate-400 font-bold gap-1 transition-colors group">
+                    <span class="text-lg transition-transform group-hover:scale-110">⚙️</span>Admin
                 </button>
-                <button id="nav-cart" onclick="showView('cart')" class="relative flex flex-col items-center text-[10px] text-slate-400 font-bold gap-0.5 transition-colors">
-                    <span class="text-xl">🛒</span>Cart
-                    <div id="cart-count" class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] w-4.5 h-4.5 px-1 rounded-full flex items-center justify-center hidden border border-[#020617] font-black">0</div>
+                <button id="nav-cart" onclick="showView('cart')" class="relative flex flex-col items-center text-[10px] text-slate-400 font-bold gap-1 transition-colors group">
+                    <span class="text-lg transition-transform group-hover:scale-110">🛒</span>Cart
+                    <div id="cart-count" class="absolute -top-2 -right-3.5 bg-red-600 text-white text-[9px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center hidden border-2 border-[#070a12] font-black">0</div>
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- Advanced Search Drawer Panel -->
-    <div id="advanced-search-panel" class="hidden bg-[#1e293b] border-b border-slate-800 p-4 shadow-2xl">
-        <div class="max-w-4xl mx-auto space-y-4">
+    <div id="advanced-search-panel" class="hidden bg-[#0c1221] border-b border-slate-900 p-6 shadow-2xl transition-all duration-300">
+        <div class="max-w-4xl mx-auto space-y-6">
             <div>
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mb-3">
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Mana Colors (Multi-select)</label>
-                    <button onclick="clearColorFilters()" class="text-xs text-indigo-400 hover:underline">Clear Colors</button>
+                    <button onclick="clearColorFilters()" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">Clear Colors</button>
                 </div>
-                <div class="flex gap-3 mt-2">
-                    <button id="color-W" onclick="toggleColorFilter('W', this)" class="color-dot bg-amber-50 text-slate-950" title="White">W</button>
-                    <button id="color-U" onclick="toggleColorFilter('U', this)" class="color-dot bg-blue-600 text-white" title="Blue">U</button>
-                    <button id="color-B" onclick="toggleColorFilter('B', this)" class="color-dot bg-neutral-800 text-slate-300" title="Black">B</button>
-                    <button id="color-R" onclick="toggleColorFilter('R', this)" class="color-dot bg-red-600 text-white" title="Red">R</button>
-                    <button id="color-G" onclick="toggleColorFilter('G', this)" class="color-dot bg-green-600 text-white" title="Green">G</button>
-                    <button id="color-C" onclick="toggleColorFilter('C', this)" class="color-dot bg-slate-500 text-white" title="Colorless">C</button>
+                <!-- Premium Color Wheel Representation -->
+                <div class="flex flex-wrap gap-4 mt-2">
+                    <button id="color-W" onclick="toggleColorFilter('W', this)" class="color-dot bg-[#fdfaf2] text-slate-950 font-black shadow-amber-500/10" title="White">W</button>
+                    <button id="color-U" onclick="toggleColorFilter('U', this)" class="color-dot bg-[#0ea5e9] text-white font-black shadow-sky-500/10" title="Blue">U</button>
+                    <button id="color-B" onclick="toggleColorFilter('B', this)" class="color-dot bg-[#1e293b] text-slate-100 border border-slate-700 font-black shadow-neutral-900/40" title="Black">B</button>
+                    <button id="color-R" onclick="toggleColorFilter('R', this)" class="color-dot bg-[#ef4444] text-white font-black shadow-red-500/10" title="Red">R</button>
+                    <button id="color-G" onclick="toggleColorFilter('G', this)" class="color-dot bg-[#22c55e] text-white font-black shadow-green-500/10" title="Green">G</button>
+                    <button id="color-C" onclick="toggleColorFilter('C', this)" class="color-dot bg-[#64748b] text-white font-black shadow-slate-500/10" title="Colorless">C</button>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Card Type</label>
-                    <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white mt-1.5 focus:border-indigo-500 outline-none">
-                        <option value="all">All Types</option>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Card Category Type</label>
+                    <select id="filter-type" onchange="applyFilters()" class="w-full bg-[#11192b] border border-slate-800 rounded-xl p-3 text-sm text-slate-200 mt-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+                        <option value="all">All Card Types</option>
                         <option value="creature">Creature</option>
                         <option value="instant">Instant</option>
                         <option value="sorcery">Sorcery</option>
@@ -184,150 +220,168 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Mana Value (CMC)</label>
-                    <select id="filter-cmc" onchange="applyFilters()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white mt-1.5 focus:border-indigo-500 outline-none">
-                        <option value="any">Any Cost</option>
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7+">7+</option>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Converted Mana Cost (CMC)</label>
+                    <select id="filter-cmc" onchange="applyFilters()" class="w-full bg-[#11192b] border border-slate-800 rounded-xl p-3 text-sm text-slate-200 mt-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+                        <option value="any">Any Converted Cost</option>
+                        <option value="0">0 Mana</option>
+                        <option value="1">1 Mana</option>
+                        <option value="2">2 Mana</option>
+                        <option value="3">3 Mana</option>
+                        <option value="4">4 Mana</option>
+                        <option value="5">5 Mana</option>
+                        <option value="6">6 Mana</option>
+                        <option value="7+">7+ Mana</option>
                     </select>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="hero-search" class="p-4 sm:p-6 max-w-4xl mx-auto">
+    <div id="hero-search" class="p-4 sm:p-8 max-w-6xl mx-auto">
         <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">🔍</span>
-            <input type="text" id="main-search" onkeyup="applyFilters()" placeholder="Search Magic Kaion collection..." 
-                   class="w-full bg-[#1e293b] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-lg text-base">
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-xl">🔍</span>
+            <input type="text" id="main-search" onkeyup="applyFilters()" placeholder="Search Singles, Sets, Types..." 
+                   class="w-full bg-[#131b2e] border border-slate-800 rounded-2xl py-4.5 pl-14 pr-6 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-xl text-base placeholder-slate-500">
         </div>
     </div>
 
-    <main id="main-content" class="px-4 pb-24 max-w-6xl mx-auto">
+    <main id="main-content" class="px-4 pb-32 max-w-6xl mx-auto">
         
-        <div id="view-browse" class="space-y-6">
-            <!-- Stores listings in responsive columns -->
-            <div id="store-display" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+        <!-- BROWSE CATALOG VIEW -->
+        <div id="view-browse" class="space-y-8">
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-4">
+                <h2 class="text-lg font-bold tracking-wider uppercase font-magic text-slate-400">Available Inventory</h2>
+                <span id="results-count" class="text-xs text-indigo-400 font-semibold tracking-wider">Loading singles catalog...</span>
+            </div>
             
-            <!-- Dynamic load pagination footer -->
-            <div id="load-more-container" class="flex justify-center pt-6"></div>
+            <!-- Grid columns display -->
+            <div id="store-display" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6"></div>
+            
+            <!-- Load More Pagination Block -->
+            <div id="load-more-container" class="flex justify-center pt-8"></div>
         </div>
 
-        <div id="view-cart" class="hidden space-y-6 max-w-2xl mx-auto">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h2 class="text-xl font-black text-white">Your Shopping Cart</h2>
-                <button onclick="clearCart()" class="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1">
-                    🗑️ Clear All Items
+        <!-- SHOPPING CART VIEW -->
+        <div id="view-cart" class="hidden space-y-8 max-w-3xl mx-auto">
+            <div class="flex justify-between items-center border-b border-slate-850 pb-4">
+                <h2 class="text-2xl font-black text-white font-magic">Your shopping vault</h2>
+                <button onclick="clearCart()" class="text-xs font-bold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 bg-red-950/20 px-3.5 py-2 rounded-xl border border-red-900/30">
+                    🗑️ Empty Cart
                 </button>
             </div>
-            <div id="cart-display" class="space-y-3"></div>
-            <div id="cart-empty-message" class="text-center py-12 text-slate-500 hidden">
-                <span class="text-4xl block mb-2">🛒</span>
-                Your cart is empty. Start browsing our rare collectibles!
+            <div id="cart-display" class="space-y-4"></div>
+            <div id="cart-empty-message" class="text-center py-20 text-slate-500 bg-[#121929]/50 rounded-2xl border border-slate-900">
+                <span class="text-5xl block mb-4 filter drop-shadow-md">🛒</span>
+                <p class="text-slate-400 font-semibold">Your cart is currently empty.</p>
+                <p class="text-xs text-slate-500 mt-2">Explore the premium singles selection and add rare MTG gems!</p>
+                <button onclick="goHome()" class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 px-6 rounded-xl transition-all shadow-lg">
+                    Return to Browse
+                </button>
             </div>
-            <div id="cart-total-container" class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
+            <div id="cart-total-container" class="bg-[#12192a] p-6 rounded-2xl border border-slate-850 space-y-4 shadow-xl">
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-slate-400 font-bold">Total Items:</span>
+                    <span class="text-slate-400 font-bold">Total Items Selected:</span>
                     <span id="cart-total-qty" class="text-white font-black">0</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-slate-800 pt-3">
-                    <span class="text-slate-400 font-bold">Total Price:</span>
+                <div class="flex justify-between items-center border-t border-slate-850 pt-4">
+                    <span class="text-slate-400 font-bold">Estimated Checkout Price:</span>
                     <span id="cart-total-price" class="text-amber-500 text-2xl font-black">$0.00</span>
                 </div>
-                <button onclick="checkoutMock()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40">
-                    Secured Checkout
+                <button onclick="checkoutMock()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-950/50 text-sm tracking-wider uppercase">
+                    Secured Checkout Settlement
                 </button>
             </div>
         </div>
 
-        <!-- Order Confirmed View (Receipt) -->
-        <div id="view-receipt" class="hidden space-y-6 max-w-2xl mx-auto">
-            <div class="text-center py-6 bg-slate-800/50 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                <span class="text-5xl block mb-4">🎉</span>
-                <h2 class="text-2xl font-black text-white">Order Confirmed!</h2>
-                <p class="text-slate-300 mt-3 text-sm leading-relaxed max-w-md mx-auto">
-                    Thank you for ordering from us, please continue in our original communication channel with this purchase order number:
+        <div id="view-receipt" class="hidden space-y-8 max-w-2xl mx-auto">
+            <div class="text-center py-10 bg-[#12192a]/80 rounded-3xl border border-slate-850 p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
+                <span class="text-5xl block mb-4 animate-bounce">🎉</span>
+                <h2 class="text-2xl font-bold text-white font-magic">Purchase Successful!</h2>
+                <p class="text-slate-400 mt-3 text-sm leading-relaxed max-w-md mx-auto">
+                    Your order has been authorized. Copy this purchase order code to finalize shipping details:
                 </p>
-                <div onclick="copyPoNumber()" class="my-5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl py-4 px-6 inline-block font-mono text-xl text-amber-500 font-black cursor-pointer shadow-inner active:scale-95 transition-all select-all" title="Click to copy PO number">
-                    <span id="receipt-po-number">PO-123456</span>
+                <div onclick="copyPoNumber()" class="my-6 bg-[#070a12] hover:bg-[#0c1221] border border-slate-800 rounded-2xl py-4.5 px-8 inline-block font-mono text-2xl text-amber-500 font-black cursor-pointer shadow-inner active:scale-95 transition-all select-all tracking-wider relative group" title="Click to Copy">
+                    <span id="receipt-po-number">PO-XXXXXX</span>
+                    <span class="absolute -top-2.5 -right-2 bg-indigo-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Copy</span>
                 </div>
-                <p class="text-[10px] text-slate-500">☝️ Click the code block to copy the PO number</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Click code block above to copy purchase receipt</p>
             </div>
 
-            <!-- Receipt Order Items Recap -->
-            <div class="space-y-3">
-                <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Order Recap</h3>
-                <div id="receipt-items" class="space-y-2.5"></div>
-                <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-4">
-                    <span class="text-slate-400 font-bold text-sm">Total Value Settled:</span>
+            <!-- Receipt Breakdown -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">Acquired Singles Recap</h3>
+                <div id="receipt-items" class="space-y-3"></div>
+                <div class="bg-[#12192a] p-5 rounded-xl border border-slate-850 flex justify-between items-center mt-6 shadow-md">
+                    <span class="text-slate-400 font-bold text-sm">Settlement Total:</span>
                     <span id="receipt-total" class="text-amber-500 text-xl font-black">$0.00</span>
                 </div>
             </div>
 
-            <button onclick="goHome()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 border border-slate-700 shadow-lg">
+            <button onclick="goHome()" class="w-full bg-[#11192b] hover:bg-[#162138] text-white font-bold py-4 rounded-xl transition-all active:scale-95 border border-slate-800 shadow-md">
                 Return to Marketplace
             </button>
         </div>
 
-        <div id="view-admin" class="hidden space-y-6 max-w-3xl mx-auto">
-            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+        <div id="view-admin" class="hidden space-y-8 max-w-4xl mx-auto">
+            <div class="border-b border-slate-850 pb-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
-                    <h2 class="text-xl font-black text-white">Inventory Control System</h2>
-                    <p class="text-xs text-slate-500 mt-1">Manage catalog listings and monitor active orders.</p>
+                    <h2 class="text-2xl font-bold text-white font-magic">Inventory & Admin Panel</h2>
+                    <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">Cloud sync control and product database override.</p>
                 </div>
+                <button onclick="resetAllQuantities()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-900/30 font-bold text-xs px-4 py-2.5 rounded-xl transition-all active:scale-95 shadow">
+                    🔄 Reset Stock to 10
+                </button>
             </div>
 
             <!-- CSV Actions Container -->
-            <div class="bg-[#1e293b] p-4 rounded-xl border border-slate-800 space-y-4">
-                <div class="flex flex-col gap-3">
-                    <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-white text-sm">Database & Synchronization</h3>
-                        <button onclick="resetAllQuantities()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition-colors shadow">
-                            🔄 Test: Reset Qty to 10
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-[#12192a] p-6 rounded-2xl border border-slate-850 space-y-4 shadow-xl">
+                    <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Bulk Upload & Export</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Overwrite existing listings instantly using custom CSV datasets. Export catalogs for safe offline management.</p>
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors shadow shadow-indigo-950/30">
                             📥 Import CSV Data
                         </button>
-                        <button onclick="exportInventoryToCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-3 rounded-lg text-xs transition-colors">
+                        <button onclick="exportInventoryToCsv()" class="bg-[#19233a] hover:bg-[#202c49] text-slate-200 border border-slate-800 font-bold py-3 px-4 rounded-xl text-xs transition-colors shadow">
                             📤 Export CSV Data
                         </button>
                     </div>
-                    <!-- Order History Button -->
-                    <button onclick="toggleOrderHistory()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 hover:text-indigo-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
-                        📋 View Order History Logs (<span id="admin-orders-count">0</span>)
+                    <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
+                    <p class="text-[9px] text-slate-500 italic">Compatible with default layout: Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty</p>
+                </div>
+
+                <!-- Live Sales Log -->
+                <div class="bg-[#12192a] p-6 rounded-2xl border border-slate-850 space-y-4 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Live Transactions Stream</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">Review incoming secure sales receipts, generated po tracking codes, and detailed items purchase values in real-time.</p>
+                    </div>
+                    <button onclick="toggleOrderHistory()" class="w-full bg-[#19233a] hover:bg-[#202c49] border border-slate-800 text-indigo-400 hover:text-indigo-300 font-extrabold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 mt-4 shadow">
+                        📋 View Orders Stream Log (<span id="admin-orders-count">0</span>)
                     </button>
                 </div>
-                <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
-                <p class="text-[10px] text-slate-500 italic">Expected CSV format aligns directly to magic_kaion_catalog.csv layout headers.</p>
             </div>
 
-            <!-- Order History List Panel -->
-            <div id="admin-orders-panel" class="hidden bg-[#1e293b] p-5 rounded-xl border border-indigo-950 space-y-4">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
-                        <span>📋</span> Order History Logs
+            <div id="admin-orders-panel" class="hidden bg-[#0a101e] p-6 rounded-2xl border border-indigo-950/50 space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-850 pb-3">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-2 font-magic">
+                        <span>📋</span> Complete Transaction Stream
                     </h3>
-                    <button onclick="toggleOrderHistory()" class="text-xs text-slate-400 hover:text-white">Close</button>
+                    <button onclick="toggleOrderHistory()" class="text-xs text-slate-400 hover:text-white bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">Close</button>
                 </div>
                 <div id="admin-orders-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Individual Add Card Form -->
-            <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 space-y-3">
-                <h3 class="font-bold text-white text-sm">Add New Singles Entry</h3>
-                <div class="space-y-2">
-                    <input id="admin-name" type="text" placeholder="Card Name (e.g. Mox Diamond)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
-                    <input id="admin-set" type="text" placeholder="Set (e.g. Stronghold)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
-                    <div class="grid grid-cols-2 gap-2">
-                        <select id="admin-type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+            <!-- Card Single Add Form Container -->
+            <div class="bg-[#12192a] p-6 rounded-2xl border border-slate-850 space-y-4 shadow-xl">
+                <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Add New Singles Entry</h3>
+                <div class="space-y-3">
+                    <input id="admin-name" type="text" placeholder="Card Name (e.g. Mox Diamond)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                    <input id="admin-set" type="text" placeholder="Set / Edition (e.g. Stronghold)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <select id="admin-type" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                             <option>Creature</option>
                             <option>Instant</option>
                             <option>Sorcery</option>
@@ -336,49 +390,58 @@
                             <option>Enchantment</option>
                             <option>Land</option>
                         </select>
-                        <input id="admin-cmc" type="number" placeholder="Mana Value" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                        <input id="admin-cmc" type="number" placeholder="Mana Value (CMC)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                     </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
-                        <input id="admin-qty" type="number" placeholder="Qty" value="10" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
-                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="col-span-1 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                        <input id="admin-qty" type="number" placeholder="Initial Inventory Stock" value="10" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                        <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                     </div>
-                    <input id="admin-img" type="text" placeholder="Scryfall or Custom Image URL" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+                    
+                    <input id="admin-img" type="text" placeholder="Scryfall Front-Face Image URL (https://...)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                    <input id="admin-img-back" type="text" placeholder="Scryfall Back-Face Image URL (Optional for Dual-Faced cards)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                 </div>
-                <button onclick="addSingleCard()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all active:scale-95">
-                    Save New Item to Inventory
+                
+                <button onclick="addSingleCard()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs transition-all active:scale-95 shadow shadow-indigo-950/30 uppercase tracking-widest mt-2">
+                    Register item to Database
                 </button>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Current Stock Registry</h3>
+                <div id="admin-inventory-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
             </div>
         </div>
     </main>
 
-    <!-- Custom Floating Toast Alerts -->
-    <div id="toast-notice" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-2 opacity-0"></div>
+    <div id="toast-notice" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-indigo-600 border border-indigo-400 text-white font-bold text-xs px-6 py-4 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-4 opacity-0 tracking-wide flex items-center gap-2"></div>
 
-    <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-200 opacity-0">
-        <div class="relative max-w-sm w-full flex flex-col items-center dynamic-modal-content" onclick="event.stopPropagation()">
+    <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+        <div class="relative max-w-sm w-full flex flex-col items-center" onclick="event.stopPropagation()">
+            <!-- Close trigger -->
             <button onclick="closeCardModal()" class="absolute -top-12 right-0 bg-slate-800 hover:bg-slate-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg text-lg transition-transform active:scale-90">
                 ✕
             </button>
             
-            <!-- 3D Card flipper frame for modal viewing -->
-            <div class="w-full aspect-[5/7] max-h-[65vh] flip-container mb-4 relative" style="width: 290px; height: 406px;">
-                <div id="modal-flipper" class="flipper w-full h-full rounded-2xl">
-                    <div class="front-face rounded-2xl bg-slate-950">
-                        <img id="modal-card-img" src="" alt="Zoomed Front View" class="w-full h-full border border-slate-700 object-cover rounded-2xl">
+            <!-- 3D Card flipper frame -->
+            <div class="w-full aspect-[5/7] max-h-[60vh] flip-container mb-6 relative" style="width: 290px; height: 406px;">
+                <div id="modal-flipper" class="flipper w-full h-full rounded-2xl shadow-2xl">
+                    <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                        <img id="modal-card-img" src="" alt="Zoomed Front Face" class="w-full h-full object-cover">
                     </div>
-                    <div class="back-face rounded-2xl bg-slate-950">
-                        <img id="modal-card-img-back" src="" alt="Zoomed Back View" class="w-full h-full border border-slate-700 object-cover rounded-2xl">
+                    <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                        <img id="modal-card-img-back" src="" alt="Zoomed Back Face" class="w-full h-full object-cover">
                     </div>
                 </div>
             </div>
 
             <!-- Double-sided trigger control -->
-            <button id="modal-flip-btn" onclick="toggleModalFlip(event)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-5 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-1.5 text-xs mb-3 tracking-wide">
+            <button id="modal-flip-btn" onclick="event.stopPropagation(); toggleModalFlip(event)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-2 text-xs mb-4 tracking-wide border border-indigo-400/20">
                 <span>🔄</span> Flip Card Face
             </button>
 
-            <p id="modal-card-caption" class="text-slate-400 font-medium text-xs mt-1 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800 tracking-wide text-center truncate w-full"></p>
+            <p id="modal-card-caption" class="text-slate-300 font-bold text-xs bg-slate-900/90 px-5 py-2.5 rounded-full border border-slate-800 tracking-wide text-center truncate w-full shadow-lg"></p>
         </div>
     </div>
 
@@ -387,6 +450,13 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, updateDoc, deleteDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Global state configuration
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'magic-kaion-app';
+        let db = null;
+        let auth = null;
+        let useFirebase = false;
+
+        // Custom sandbox fallback check
         const firebaseConfig = {
             apiKey: "AIzaSyAbALzMNr_wexTTHD2f3J3HxJqhjnG8yU0",
             authDomain: "magic-kion.firebaseapp.com",
@@ -396,11 +466,6 @@
             appId: "1:928438635995:web:ccb79329b678f299046bfe",
             measurementId: "G-03V3962LTW"
         };
-        const appId = 'magic-kaion-app';
-
-        let db = null;
-        let auth = null;
-        let useFirebase = false;
 
         try {
             const config = (typeof __firebase_config !== 'undefined' && __firebase_config) 
@@ -413,12 +478,13 @@
                 db = getFirestore(app);
                 useFirebase = true;
             } else {
-                console.warn("Firebase config variables empty. Activating localized offline fallback.");
+                console.warn("Firebase configuration was unavailable. Accessing browser backup layer.");
             }
         } catch (error) {
-            console.error("Firebase startup collapsed, triggering local recovery:", error);
+            console.error("Firebase startup interrupted. Swapping to offline engine:", error);
         }
 
+        // Program State Elements
         let inventory = [];
         let orders = [];
         let cart = [];
@@ -426,35 +492,29 @@
         let activeView = 'browse';
         let currentUserState = null;
 
-        // Dynamic render parameters
-        let displayLimit = 20;
+        // Display pagination offsets
+        let displayLimit = 16;
         let currentFilteredData = [];
 
-        // Seed inventory aligned EXACTLY to the 'magic_kaion_catalog.csv' schema layout
+        // Master premium MTG single sets catalog
         const seedInventoryDefaults = [
             { id: '1', Name: 'Black Lotus', Set: 'Alpha', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '' },
             { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '' },
             { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg' },
             { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '' },
             { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '' },
-            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg' }
+            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg' },
+            { id: '7', Name: 'Mox Diamond', Set: 'Stronghold', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 650.00, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/a/1a93e9b1-ba77-444b-896c-c59911e74716.jpg', ImageURL_Back: '' },
+            { id: '8', Name: 'Ragavan, Nimble Pilferer', Set: 'Modern Horizons 2', Type: 'Creature', CMC: '1', Colors: ['R'], Price: 38.00, Qty: 12, ImageURL: 'https://cards.scryfall.io/normal/front/a/1/a1eb900d-5136-44b7-b07f-538421b1ee9f.jpg', ImageURL_Back: '' }
         ];
 
-        /**
-         * Schema Normalization Layer
-         * Guarantees absolute schema compatibility regardless of capitalization,
-         * avoiding repeated nested calls when objects are already normalized.
-         */
         function normalizeCard(card, docId = null) {
             if (!card) return null;
-            
-            // Safe extraction of identifier, protecting against array mapping parameter leakage
             let finalId = card.id || card.Id || (typeof docId === 'string' ? docId : null);
             if (!finalId) {
                 finalId = crypto.randomUUID();
             }
 
-            // Safe extraction of Colors
             let colors = ['C'];
             if (Array.isArray(card.Colors)) {
                 colors = card.Colors;
@@ -481,8 +541,11 @@
         }
 
         const initAuth = async () => {
+            const loaderBar = document.getElementById('loader-bar');
+            if (loaderBar) loaderBar.style.width = '60%';
+
             if (!useFirebase) {
-                loadLocalFallback("Offline Mode: Running on browser fallback storage.");
+                loadLocalFallback("Offline backup activated safely.");
                 return;
             }
             try {
@@ -492,12 +555,12 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Authentication handshake failure, running localized fallback:", error);
-                loadLocalFallback("Offline Mode: Authenticating to local storage fallback.");
+                console.error("Auth initialization check failed, starting local recovery:", error);
+                loadLocalFallback("Browser sandbox backup initialized.");
             }
         };
 
-        function loadLocalFallback(msg = "Local test mode active.") {
+        function loadLocalFallback(msg = "Local fallback storage synchronized.") {
             const savedInventory = localStorage.getItem('magic_kaion_inventory');
             if (savedInventory) {
                 inventory = JSON.parse(savedInventory).map(c => normalizeCard(c));
@@ -514,12 +577,17 @@
                 localStorage.setItem('magic_kaion_orders', JSON.stringify(orders));
             }
 
-            const loader = document.getElementById('loading-overlay');
-            if (loader) loader.classList.add('hidden');
+            const loaderBar = document.getElementById('loader-bar');
+            if (loaderBar) loaderBar.style.width = '100%';
+
+            setTimeout(() => {
+                const loader = document.getElementById('loading-overlay');
+                if (loader) loader.classList.add('hidden');
+            }, 300);
 
             const statusTag = document.getElementById('cloud-status-tag');
             if (statusTag) {
-                statusTag.innerText = "⚠️ Offline Mode (Local Storage)";
+                statusTag.innerText = "⚠️ Running Locally (Sandbox Offline)";
                 statusTag.className = "text-[9px] text-amber-500 font-bold uppercase tracking-wider";
             }
 
@@ -534,13 +602,13 @@
             if (useFirebase && user) {
                 const statusTag = document.getElementById('cloud-status-tag');
                 if (statusTag) {
-                    statusTag.innerText = "☁️ Connected to Cloud Database";
-                    statusTag.className = "text-[9px] text-emerald-400 font-bold uppercase tracking-wider";
+                    statusTag.innerText = "☁️ Real-time Cloud Connection Restored";
+                    statusTag.className = "text-[9px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5";
                 }
                 await seedInventoryIfEmpty();
                 setupRealtimeSync();
             } else if (useFirebase && !user) {
-                // waiting resolution
+                // Auth system establishing validation
             } else {
                 loadLocalFallback();
             }
@@ -559,7 +627,7 @@
                     }
                 }
             } catch (err) {
-                console.error("Failed writing initial seed data:", err);
+                console.error("Master collection seed collapsed:", err);
             }
         }
 
@@ -574,21 +642,26 @@
                 snapshot.forEach(docSnap => {
                     items.push(normalizeCard(docSnap.data(), docSnap.id));
                 });
-                // Sort safely avoiding NaN compares
+                
                 inventory = items.sort((a, b) => {
                     const numA = parseInt(a.id) || 0;
                     const numB = parseInt(b.id) || 0;
                     return numA - numB;
                 });
                 
-                const loader = document.getElementById('loading-overlay');
-                if (loader) loader.classList.add('hidden');
+                const loaderBar = document.getElementById('loader-bar');
+                if (loaderBar) loaderBar.style.width = '100%';
+
+                setTimeout(() => {
+                    const loader = document.getElementById('loading-overlay');
+                    if (loader) loader.classList.add('hidden');
+                }, 300);
 
                 applyFilters();
                 renderAdminList();
             }, (err) => {
-                console.error("Realtime inventory collection subscription broken:", err);
-                loadLocalFallback("Subscription error, recovered with local fallback.");
+                console.error("Firestore database connection error. Returning to local cache:", err);
+                loadLocalFallback("Connection error, swapped to backup buffer.");
             });
 
             onSnapshot(ordersCol, (snapshot) => {
@@ -603,24 +676,24 @@
                     renderOrderHistoryLogs();
                 }
             }, (err) => {
-                console.error("Realtime orders history subscription broken:", err);
+                console.error("Cloud orders subscription disrupted:", err);
             });
         }
 
         function showToast(message) {
             const toast = document.getElementById('toast-notice');
-            toast.innerText = message;
+            toast.innerHTML = `<span>✨</span> ${message}`;
             toast.classList.remove('hidden');
             setTimeout(() => {
-                toast.classList.remove('opacity-0', 'translate-y-2');
+                toast.classList.remove('opacity-0', 'translate-y-4');
             }, 50);
 
             setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
+                toast.classList.add('opacity-0', 'translate-y-4');
                 setTimeout(() => {
                     toast.classList.add('hidden');
                 }, 300);
-            }, 3000);
+            }, 4000);
         }
 
         function openCardModal(cardId) {
@@ -634,9 +707,7 @@
             const modalFlipper = document.getElementById('modal-flipper');
             const modalFlipBtn = document.getElementById('modal-flip-btn');
 
-            // Reset flipper state to front-face initially
             modalFlipper.classList.remove('flipped');
-
             modalImg.src = card.ImageURL;
             
             if (card.ImageURL_Back) {
@@ -647,7 +718,7 @@
                 modalFlipBtn.classList.add('hidden');
             }
 
-            modalCaption.innerText = `${card.Name} — ${card.Set}`;
+            modalCaption.innerText = `${card.Name} — Set: ${card.Set}`;
 
             modal.classList.remove('hidden');
             document.body.classList.add('modal-open');
@@ -670,14 +741,13 @@
             }
         }
 
-        // Close card zoom modal
         function closeCardModal() {
             const modal = document.getElementById('card-modal');
             modal.classList.add('opacity-0');
             document.body.classList.remove('modal-open');
             setTimeout(() => {
                 modal.classList.add('hidden');
-            }, 200);
+            }, 300);
         }
 
         function showView(viewName) {
@@ -710,7 +780,7 @@
             document.getElementById('filter-type').value = 'all';
             document.getElementById('filter-cmc').value = 'any';
             clearColorFilters();
-            displayLimit = 20; // reset page limits
+            displayLimit = 16;
             applyFilters();
             showView('browse');
         }
@@ -731,10 +801,10 @@
 
             Object.keys(links).forEach(key => {
                 if (key === activeView) {
-                    links[key].classList.add('text-amber-500');
+                    links[key].classList.add('text-indigo-400');
                     links[key].classList.remove('text-slate-400');
                 } else {
-                    links[key].classList.remove('text-amber-500');
+                    links[key].classList.remove('text-indigo-400');
                     links[key].classList.add('text-slate-400');
                 }
             });
@@ -745,16 +815,21 @@
             if (index > -1) {
                 selectedColors.splice(index, 1);
                 element.style.borderColor = 'transparent';
+                element.style.transform = 'none';
             } else {
                 selectedColors.push(color);
-                element.style.borderColor = '#4f46e5';
+                element.style.borderColor = '#6366f1';
+                element.style.transform = 'scale(1.08)';
             }
             applyFilters();
         }
 
         function clearColorFilters() {
             selectedColors = [];
-            document.querySelectorAll('.color-dot').forEach(dot => dot.style.borderColor = 'transparent');
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.style.borderColor = 'transparent';
+                dot.style.transform = 'none';
+            });
             applyFilters();
         }
 
@@ -763,7 +838,6 @@
             const typeFilter = document.getElementById('filter-type').value.toLowerCase();
             const cmcFilter = document.getElementById('filter-cmc').value;
 
-            // Direct filtering on clean, already-normalized database state
             const filteredData = inventory.filter(card => {
                 const cardName = card.Name.toLowerCase();
                 const cardSet = card.Set.toLowerCase();
@@ -787,14 +861,12 @@
                 return matchesSearch && matchesType && matchesCmc && matchesColors;
             });
 
-            // Reset dynamic scrolling offset on queries change
-            displayLimit = 20; 
+            document.getElementById('results-count').innerText = `${filteredData.length} items found`;
             renderStore(filteredData);
         }
 
         function renderTypeBadges(rawType) {
             if (!rawType) return '';
-            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
             const mainTypes = rawType.split('—')[0].split('-')[0].trim();
             const words = mainTypes.split(/\s+/);
             
@@ -802,17 +874,16 @@
                 const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
                 if (!cleanWord) return '';
                 
-                // Assign beautiful, contextual color styles to different magic card types
                 let badgeStyle = "bg-slate-900/60 border-slate-800 text-slate-400";
                 if (cleanWord === 'creature') badgeStyle = "bg-amber-950/40 border-amber-800/60 text-amber-300";
                 if (cleanWord === 'artifact') badgeStyle = "bg-sky-950/40 border-sky-800/60 text-sky-300";
                 if (cleanWord === 'enchantment') badgeStyle = "bg-purple-950/40 border-purple-800/60 text-purple-300";
                 if (cleanWord === 'land') badgeStyle = "bg-emerald-950/40 border-emerald-800/60 text-emerald-300";
                 if (cleanWord === 'planeswalker') badgeStyle = "bg-rose-950/40 border-rose-800/60 text-rose-300";
-                if (cleanWord === 'legendary') badgeStyle = "bg-yellow-950/40 border-yellow-800/60 text-yellow-300";
+                if (cleanWord === 'legendary') badgeStyle = "bg-yellow-950/40 border-yellow-850 text-yellow-300";
                 if (cleanWord === 'instant' || cleanWord === 'sorcery') badgeStyle = "bg-indigo-950/40 border-indigo-800/60 text-indigo-300";
 
-                return `<span class="inline-block px-1.5 py-0.5 border text-[8px] rounded uppercase font-bold tracking-wider ${badgeStyle}">${word}</span>`;
+                return `<span class="inline-block px-2 py-0.5 border text-[8px] rounded uppercase font-bold tracking-widest ${badgeStyle}">${word}</span>`;
             }).join(' ');
         }
 
@@ -823,10 +894,10 @@
                         const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', card.id);
                         await updateDoc(cardRef, { Qty: 10 });
                     }
-                    showToast("Cloud synchronization completed: Reset levels to 10.");
+                    showToast("Database quantities restored to 10 copies.");
                 } catch (err) {
-                    console.error("Firestore batch transaction blocked:", err);
-                    showToast("Sync Error: Verify Firestore console rules.");
+                    console.error("Firestore transaction block restricted:", err);
+                    showToast("Sync Error: Reset failed.");
                 }
             } else {
                 inventory = inventory.map(card => {
@@ -836,7 +907,7 @@
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                 applyFilters();
                 renderAdminList();
-                showToast("Local backup levels successfully reset to 10.");
+                showToast("Sandbox database quantities restored.");
             }
         }
 
@@ -858,13 +929,12 @@
         function renderOrderHistoryLogs() {
             const listContainer = document.getElementById('admin-orders-list');
             if (orders.length === 0) {
-                listContainer.innerHTML = `<p class="text-center text-slate-500 py-6 text-xs">No transactions have been recorded yet.</p>`;
+                listContainer.innerHTML = `<p class="text-center text-slate-500 py-10 text-xs">No recorded marketplace sales entries.</p>`;
                 return;
             }
 
             listContainer.innerHTML = orders.map(order => {
                 const itemsMarkup = (order.items || []).map(item => {
-                    // Safe key casing fallback layer
                     const itemPrice = parseFloat(item.Price !== undefined ? item.Price : (item.price !== undefined ? item.price : 0)) || 0;
                     const itemName = item.Name || item.name || 'Unnamed Card';
                     const itemSet = item.Set || item.set || '';
@@ -872,11 +942,11 @@
                     const itemImg = item.ImageURL || item.img || 'https://cards.scryfall.io/back.png';
 
                     return `
-                        <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-lg border border-slate-800/50">
-                            <img src="${itemImg}" onclick="openCardModal('${item.id || ''}')" class="w-6 h-9 object-cover rounded shadow cursor-zoom-in">
-                            <div class="min-width-0 flex-grow">
-                                <p class="text-white text-[11px] font-bold truncate">${itemName}</p>
-                                <p class="text-[9px] text-slate-500">${itemSet} • Qty: ${itemQty} • $${itemPrice.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
+                        <div class="flex items-center gap-3 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <img src="${itemImg}" onclick="openCardModal('${item.id || ''}')" class="w-8 h-11 object-cover rounded shadow cursor-zoom-in">
+                            <div class="min-w-0 flex-grow">
+                                <p class="text-white text-xs font-bold truncate">${itemName}</p>
+                                <p class="text-[9px] text-slate-500 font-medium uppercase mt-0.5">${itemSet} • Qty: ${itemQty} • $${itemPrice.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
                             </div>
                         </div>
                     `;
@@ -887,19 +957,19 @@
                 const orderDate = order.date || 'Unknown Date';
 
                 return `
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
-                        <div class="flex justify-between items-start gap-2 border-b border-slate-800/80 pb-2">
+                    <div class="bg-[#12192a] p-5 rounded-2xl border border-slate-850 space-y-4">
+                        <div class="flex justify-between items-start gap-2 border-b border-slate-800/60 pb-3">
                             <div>
-                                <span onclick="copySpecificPo('${poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
-                                    ${poCode} <span class="text-[10px]">📋</span>
+                                <span onclick="copySpecificPo('${poCode}')" class="font-mono text-sm font-black text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1.5 transition-colors" title="Copy PO Code">
+                                    ${poCode} <span class="text-[10px] bg-[#1a233a] px-1.5 py-0.5 rounded text-indigo-400">Copy</span>
                                 </span>
-                                <span class="text-[9px] text-slate-500 block mt-0.5">${orderDate}</span>
+                                <span class="text-[9px] text-slate-500 block mt-1 uppercase tracking-wider font-semibold">${orderDate}</span>
                             </div>
-                            <span class="text-emerald-500 font-bold text-sm">$${orderTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <span class="text-emerald-500 font-extrabold text-base">$${orderTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
-                        <div class="space-y-1.5">
-                            <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ordered Items</span>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                        <div class="space-y-2">
+                            <span class="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Acquired Singles</span>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
                                 ${itemsMarkup}
                             </div>
                         </div>
@@ -908,7 +978,6 @@
             }).join('');
         }
 
-        // Secure copy utility bypasses sandbox restrictions
         function copyTextToClipboard(text) {
             if (!text) return false;
             let success = false;
@@ -923,14 +992,14 @@
                 success = document.execCommand("copy");
                 document.body.removeChild(tempInput);
             } catch (err) {
-                console.error("execCommand fallback copy failed", err);
+                console.error("Standard copy layer restricted:", err);
             }
             if (!success) {
                 try {
                     navigator.clipboard.writeText(text);
                     success = true;
                 } catch (err) {
-                    console.error("Navigator clipboard copy failed", err);
+                    console.error("Navigator clipboard restricted:", err);
                 }
             }
             return success;
@@ -938,9 +1007,9 @@
 
         function copySpecificPo(poCode) {
             if (copyTextToClipboard(poCode)) {
-                showToast(`Copied ${poCode} to clipboard!`);
+                showToast(`Copied ${poCode} receipt code!`);
             } else {
-                showToast("Failed to copy. Please manually copy code.");
+                showToast("Failed to write to clipboard. Copy manually.");
             }
         }
 
@@ -951,13 +1020,13 @@
             const currentInCart = cart.filter(item => item.id === id).length;
 
             if (currentInCart >= card.Qty) {
-                showToast(`Unable to add. Only ${card.Qty} copy/copies left in stock!`);
+                showToast(`Stock limit reached! Only ${card.Qty} copies left.`);
                 return;
             }
 
             cart.push(card);
             updateCartQuantity();
-            showToast(`Added ${card.Name} to cart.`);
+            showToast(`Added "${card.Name}" to checkout queue.`);
         }
 
         function updateCartQuantity() {
@@ -976,14 +1045,14 @@
             cart.splice(index, 1);
             updateCartQuantity();
             renderCart();
-            showToast(`Removed ${name} from cart.`);
+            showToast(`Removed "${name}" from checkout queue.`);
         }
 
         function clearCart() {
             cart = [];
             updateCartQuantity();
             renderCart();
-            showToast('Cleared shopping cart.');
+            showToast('Checkout queue cleared.');
         }
 
         function renderStore(data = inventory) {
@@ -993,94 +1062,90 @@
 
             if (data.length === 0) {
                 storeDisplay.innerHTML = `
-                    <div class="col-span-full text-center py-16 text-slate-500">
-                        <span class="text-4xl block mb-2">🃏</span>No cards match your filters.
+                    <div class="col-span-full text-center py-24 text-slate-500">
+                        <span class="text-5xl block mb-4">🃏</span>No singles match the selected parameters.
                     </div>
                 `;
                 loadMoreContainer.innerHTML = '';
                 return;
             }
 
-            // Paginate local view to 20 element chunks at once
             const paginatedData = data.slice(0, displayLimit);
 
             storeDisplay.innerHTML = paginatedData.map(cardItem => {
                 const card = normalizeCard(cardItem);
                 const colorsDisplay = card.Colors.map(c => {
                     let colorClass = 'bg-slate-500';
-                    if (c === 'W') colorClass = 'bg-amber-100 text-slate-900 border border-amber-300';
-                    if (c === 'U') colorClass = 'bg-blue-600 text-white';
-                    if (c === 'B') colorClass = 'bg-neutral-800 text-slate-200 border border-slate-700';
-                    if (c === 'R') colorClass = 'bg-red-600 text-white';
-                    if (c === 'G') colorClass = 'bg-green-600 text-white';
-                    return `<span class="inline-block w-2 h-2 rounded-full ${colorClass}"></span>`;
+                    if (c === 'W') colorClass = 'bg-[#fdfaf2] border border-amber-300';
+                    if (c === 'U') colorClass = 'bg-[#0ea5e9]';
+                    if (c === 'B') colorClass = 'bg-[#1e293b] border border-slate-700';
+                    if (c === 'R') colorClass = 'bg-[#ef4444]';
+                    if (c === 'G') colorClass = 'bg-[#22c55e]';
+                    return `<span class="inline-block w-2.5 h-2.5 rounded-full ${colorClass} shadow-sm"></span>`;
                 }).join('');
 
                 const isOutOfStock = card.Qty <= 0;
                 const buttonMarkup = isOutOfStock 
-                    ? `<button disabled class="w-full bg-slate-800 text-slate-500 py-2 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-700">Sold Out</button>`
-                    : `<button onclick="addToCart('${card.id}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-900/40">Add to Cart</button>`;
+                    ? `<button disabled class="w-full bg-slate-950 text-slate-600 py-2.5 rounded-xl font-bold text-xs cursor-not-allowed border border-slate-905">SOLD OUT</button>`
+                    : `<button onclick="event.stopPropagation(); addToCart('${card.id}')" class="w-full bg-indigo-600 hover:bg-indigo-500 hover:border-indigo-400 text-white py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md shadow-indigo-950/40 border border-transparent">ADD TO CART</button>`;
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Dynamic extraction logic for extra keys (supporting additional CSV columns custom added)
                 const coreKeys = ['id', 'Name', 'Set', 'Type', 'CMC', 'Colors', 'Price', 'Qty', 'ImageURL', 'ImageURL_Back'];
                 const extraBadges = Object.keys(cardItem)
                     .filter(key => !coreKeys.includes(key))
-                    .map(key => `<span class="inline-block px-1 py-0.5 bg-slate-800 text-[8px] text-indigo-300 rounded uppercase font-medium truncate max-w-full">${key}: ${cardItem[key]}</span>`)
+                    .map(key => `<span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-indigo-400 rounded uppercase font-semibold truncate max-w-full">${key}: ${cardItem[key]}</span>`)
                     .join('');
 
-                // Rendering 3D Flipper markup inside grid if backface is registered
                 let mediaFrame = '';
                 if (card.ImageURL_Back) {
                     mediaFrame = `
-                        <div class="relative rounded-lg aspect-[5/7] cursor-pointer mb-3 flip-container" onclick="openCardModal('${card.id}')">
-                            <div id="grid-flipper-${card.id}" class="flipper rounded-lg">
-                                <div class="front-face rounded-lg bg-slate-950">
-                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover rounded-lg">
+                        <div class="relative rounded-2xl aspect-[5/7] cursor-pointer mb-4 flip-container" onclick="openCardModal('${card.id}')">
+                            <div id="grid-flipper-${card.id}" class="flipper rounded-2xl">
+                                <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                                    <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
-                                <div class="back-face rounded-lg bg-slate-950">
-                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover rounded-lg">
+                                <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                                    <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
                             </div>
-                            <!-- In-grid flip controls -->
-                            <button onclick="toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-2 right-2 bg-slate-900/90 text-white p-1.5 rounded-full border border-slate-700 text-[10px] hover:bg-slate-800 active:scale-90 transition-transform shadow-md z-10" title="Quick Flip">
+                            <button onclick="event.stopPropagation(); toggleGridCardFlip(event, '${card.id}')" class="absolute bottom-3 right-3 bg-slate-950/90 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-800 text-[10px] hover:bg-slate-900 active:scale-90 transition-transform shadow-lg z-10 font-bold uppercase tracking-wider" title="Flip Card Preview">
                                 🔄 Flip
                             </button>
                         </div>
                     `;
                 } else {
                     mediaFrame = `
-                        <div class="relative overflow-hidden rounded-lg bg-slate-950 aspect-[5/7] cursor-pointer group mb-3" onclick="openCardModal('${card.id}')">
+                        <div class="relative overflow-hidden rounded-2xl bg-slate-950 aspect-[5/7] cursor-pointer group mb-4 border border-slate-900" onclick="openCardModal('${card.id}')">
                             <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" 
-                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                                <span class="text-white text-xs bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-700">🔍 View Image</span>
+                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                            <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
+                                <span class="text-white text-[11px] bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 uppercase tracking-widest font-extrabold shadow-2xl">🔍 View Card</span>
                             </div>
                         </div>
                     `;
                 }
 
                 return `
-                    <div class="card-grid-item flex flex-col p-3 h-full justify-between">
+                    <div class="card-grid-item flex flex-col p-4 h-full justify-between">
                         <div>
                             ${mediaFrame}
-                            <div class="space-y-1.5">
+                            <div class="space-y-2">
                                 <div class="flex justify-between items-start gap-1">
-                                    <h3 class="text-white font-bold text-xs leading-snug truncate hover:text-indigo-400 transition-colors" title="${card.Name}">${card.Name}</h3>
-                                    <div class="flex gap-0.5 items-center flex-shrink-0 mt-0.5">${colorsDisplay}</div>
+                                    <h3 class="text-white font-extrabold text-sm leading-snug truncate hover:text-indigo-400 transition-colors" title="${card.Name}">${card.Name}</h3>
+                                    <div class="flex gap-1 items-center flex-shrink-0 mt-0.5">${colorsDisplay}</div>
                                 </div>
-                                <p class="text-slate-500 text-[10px] leading-none truncate" title="${card.Set}">${card.Set}</p>
-                                <div class="flex flex-wrap items-center gap-1">
+                                <p class="text-slate-500 text-[10px] leading-none uppercase tracking-widest font-bold" title="${card.Set}">${card.Set}</p>
+                                <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
                                     ${renderTypeBadges(card.Type)}
-                                    <span class="text-[8px] text-slate-500">CMC:${card.CMC}</span>
-                                    <span class="text-[9px] font-black ${stockColor}">QTY:${card.Qty}</span>
+                                    <span class="text-[9px] text-slate-400 font-semibold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-850">CMC:${card.CMC}</span>
+                                    <span class="text-[9px] font-black uppercase tracking-wider ${stockColor}">QTY:${card.Qty}</span>
                                 </div>
-                                ${extraBadges ? `<div class="flex flex-col gap-1 pt-1 border-t border-slate-800/40">${extraBadges}</div>` : ''}
+                                ${extraBadges ? `<div class="flex flex-col gap-1 pt-2 border-t border-slate-800/40">${extraBadges}</div>` : ''}
                             </div>
                         </div>
-                        <div class="pt-3 mt-3 border-t border-slate-800 flex flex-col gap-2">
-                            <span class="text-amber-500 font-black text-base">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <div class="pt-4 mt-4 border-t border-slate-850 flex flex-col gap-3">
+                            <span class="text-amber-500 font-black text-lg">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             ${buttonMarkup}
                         </div>
                     </div>
@@ -1089,8 +1154,8 @@
 
             if (data.length > displayLimit) {
                 loadMoreContainer.innerHTML = `
-                    <button onclick="loadMoreCards()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-8 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40 text-xs tracking-wider uppercase border border-indigo-500/20">
-                        Load More (${data.length - displayLimit} items remaining)
+                    <button onclick="loadMoreCards()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-900/40 text-xs tracking-widest uppercase border border-indigo-500/20">
+                        Load More Singles (${data.length - displayLimit} remaining)
                     </button>
                 `;
             } else {
@@ -1098,7 +1163,6 @@
             }
         }
 
-        // Render cart list page
         function renderCart() {
             const cartDisplay = document.getElementById('cart-display');
             const emptyMessage = document.getElementById('cart-empty-message');
@@ -1120,14 +1184,14 @@
             cartDisplay.innerHTML = cart.map((card, index) => {
                 runningSum += card.Price;
                 return `
-                    <div class="flex items-center gap-3 bg-[#1e293b] p-3 rounded-xl border border-slate-800">
-                        <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-12 h-16 object-cover rounded shadow-md cursor-zoom-in">
+                    <div class="flex items-center gap-4 bg-[#12192a] p-4 rounded-2xl border border-slate-850 shadow-md">
+                        <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-12 h-17 object-cover rounded-lg shadow cursor-zoom-in">
                         <div class="flex-grow min-width-0">
-                            <h4 class="text-white font-bold text-xs truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${card.id}')">${card.Name}</h4>
-                            <p class="text-[10px] text-slate-500">${card.Set}</p>
-                            <span class="text-amber-500 font-bold text-sm">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <h4 class="text-white font-extrabold text-sm truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${card.id}')">${card.Name}</h4>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mt-0.5">${card.Set}</p>
+                            <span class="text-amber-500 font-black text-sm block mt-1">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
-                        <button onclick="removeFromCart(${index})" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                        <button onclick="removeFromCart(${index})" class="p-2 text-slate-400 hover:text-red-500 transition-colors bg-red-950/10 hover:bg-red-950/20 border border-red-900/10 rounded-xl">
                             🗑️
                         </button>
                     </div>
@@ -1162,12 +1226,12 @@
                 totalRecapSum += subTotal;
                 return {
                     markup: `
-                        <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                            <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-10 h-14 object-cover rounded shadow-md cursor-zoom-in">
+                        <div class="flex items-center gap-4 bg-[#12192a]/80 p-4.5 rounded-2xl border border-slate-850">
+                            <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-10 h-14 object-cover rounded-lg shadow cursor-zoom-in">
                             <div class="flex-grow min-width-0">
                                 <h4 class="text-white text-xs font-bold truncate">${card.Name}</h4>
-                                <p class="text-[10px] text-slate-500">${card.Set} • Qty Purchased: ${item.qty}</p>
-                                <span class="text-amber-500 font-bold text-xs">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">${card.Set} • Qty Purchased: ${item.qty}</p>
+                                <span class="text-amber-500 font-black text-xs block mt-1">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
                         </div>
                     `,
@@ -1194,11 +1258,9 @@
 
             if (useFirebase && currentUserState) {
                 try {
-                    // Lock resources inside a transaction to prevent race conditions
                     await runTransaction(db, async (transaction) => {
                         const transactionReads = [];
                         
-                        // Retrieve latest items under atomic database lock
                         for (const itemId of Object.keys(aggregates)) {
                             const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', itemId);
                             const docSnap = await transaction.get(cardRef);
@@ -1210,32 +1272,29 @@
                             });
                         }
 
-                        // Verify stocks inside transaction block
                         for (const read of transactionReads) {
                             if (!read.snap.exists()) {
-                                throw new Error(`The card "${read.Name}" was not found in the live catalog database.`);
+                                throw new Error(`Single item "${read.Name}" was missing in database.`);
                             }
                             const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             if (serverQty < read.requestedQty) {
-                                throw new Error(`Insufficient stock for "${read.Name}". Available: ${serverQty}. Requested: ${read.requestedQty}.`);
+                                throw new Error(`Stock error: "${read.Name}" only has ${serverQty} copies remaining.`);
                             }
                         }
 
-                        // Write changes inside transaction block
                         for (const read of transactionReads) {
                             const serverQty = parseInt(read.snap.data().Qty !== undefined ? read.snap.data().Qty : (read.snap.data().qty !== undefined ? read.snap.data().qty : 0)) || 0;
                             transaction.update(read.ref, { Qty: serverQty - read.requestedQty });
                         }
 
-                        // Create the secure purchase order
                         const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', poCode);
                         transaction.set(orderRef, orderRecord);
                     });
 
-                    showToast(`Cloud Transaction successfully processed: ${poCode}`);
+                    showToast(`Cloud Order settled successfully: ${poCode}`);
                 } catch (err) {
-                    console.error("Database checkout transaction failed:", err);
-                    showToast(err.message || "Checkout rejected due to database lock or out of stock.");
+                    console.error("Cloud Checkout process collapsed:", err);
+                    showToast(err.message || "Cloud settlement was rejected. Try again.");
                     return; 
                 }
             } else {
@@ -1246,7 +1305,7 @@
                     if (idx !== -1) {
                         const invCard = inventory[idx];
                         if (invCard.Qty < group.qty) {
-                            outOfStockError = `Insufficient local stock for "${invCard.Name}". Available: ${invCard.Qty}. Requested: ${group.qty}.`;
+                            outOfStockError = `Stock error: Only ${invCard.Qty} copies left of "${invCard.Name}".`;
                             break;
                         }
                     }
@@ -1273,7 +1332,7 @@
                 applyFilters();
                 renderAdminList();
                 updateAdminOrdersCount();
-                showToast(`Local backup checkout saved: ${poCode}`);
+                showToast(`Offline Sandbox purchase complete: ${poCode}`);
             }
 
             showView('receipt');
@@ -1284,26 +1343,25 @@
         function copyPoNumber() {
             const poText = document.getElementById('receipt-po-number').innerText;
             if (copyTextToClipboard(poText)) {
-                showToast(`Copied ${poText} to clipboard!`);
+                showToast(`Copied ${poText} successfully!`);
             } else {
-                showToast("Failed to copy. Please copy manually.");
+                showToast("Failed to copy receipt. Write down po number.");
             }
         }
 
         async function addSingleCard() {
-            const Name = document.getElementById('admin-name').value;
-            const Set = document.getElementById('admin-set').value;
+            const Name = document.getElementById('admin-name').value.trim();
+            const Set = document.getElementById('admin-set').value.trim();
             const Type = document.getElementById('admin-type').value;
             const CMC = document.getElementById('admin-cmc').value || '0';
             const Price = parseFloat(document.getElementById('admin-price').value) || 0.00;
             const Qty = parseInt(document.getElementById('admin-qty').value) || 10;
-            const colorsInput = document.getElementById('admin-colors').value;
-            const ImageURL = document.getElementById('admin-img').value || 'https://cards.scryfall.io/back.png';
-            
-            const ImageURL_Back = prompt("Is this a Double-Faced Card? Enter Back Image URL (optional):") || '';
+            const colorsInput = document.getElementById('admin-colors').value.trim();
+            const ImageURL = document.getElementById('admin-img').value.trim() || 'https://cards.scryfall.io/back.png';
+            const ImageURL_Back = document.getElementById('admin-img-back').value.trim() || '';
 
             if (!Name || !Set) {
-                showToast('Card Name and Set are mandatory fields.');
+                showToast('Singles Name and Set are mandatory fields.');
                 return;
             }
 
@@ -1316,10 +1374,10 @@
                 try {
                     const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newId);
                     await setDoc(cardRef, newCard);
-                    showToast(`${Name} added to live catalog.`);
+                    showToast(`Successfully registered: ${Name}`);
                 } catch (err) {
-                    console.error("Firestore database write error:", err);
-                    showToast("Failed to upload listing. Check rules.");
+                    console.error("Firestore DB single write crashed:", err);
+                    showToast("Database error registering listing.");
                     return;
                 }
             } else {
@@ -1327,7 +1385,7 @@
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                 applyFilters();
                 renderAdminList();
-                showToast(`${Name} saved to local storage inventory.`);
+                showToast(`Singles registration saved: ${Name}`);
             }
 
             document.getElementById('admin-name').value = '';
@@ -1337,6 +1395,7 @@
             document.getElementById('admin-qty').value = '10';
             document.getElementById('admin-colors').value = '';
             document.getElementById('admin-img').value = '';
+            document.getElementById('admin-img-back').value = '';
         }
 
         async function removeCardFromInventory(id) {
@@ -1344,34 +1403,34 @@
                 try {
                     const cardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
                     await deleteDoc(cardRef);
-                    showToast("Listing deleted from live catalog.");
+                    showToast("Listing deleted from master cloud database.");
                 } catch (err) {
-                    console.error("Firestore document deletion error:", err);
-                    showToast("Database deletion failure. Check rules.");
+                    console.error("Firestore deletion failed:", err);
+                    showToast("Failed to remove item.");
                 }
             } else {
                 inventory = inventory.filter(c => c.id !== id);
                 localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                 applyFilters();
                 renderAdminList();
-                showToast("Listing deleted locally.");
+                showToast("Listing deleted from sandbox database.");
             }
         }
 
         function renderAdminList() {
             const adminList = document.getElementById('admin-inventory-list');
-            if (!adminList) return; // Safely return if the UI section has been removed
+            if (!adminList) return;
             adminList.innerHTML = inventory.map(normalizeCard).map(card => {
                 return `
-                    <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                    <div class="flex items-center justify-between bg-[#12192a] p-3.5 rounded-xl border border-slate-850">
                         <div class="flex items-center gap-3">
                             <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
                             <div>
-                                <h4 class="text-white text-xs font-bold">${card.Name}</h4>
-                                <p class="text-[10px] text-slate-500">${card.Set} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
+                                <h4 class="text-white text-xs font-bold leading-snug">${card.Name}</h4>
+                                <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">${card.Set} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
                             </div>
                         </div>
-                        <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-md font-bold transition-colors">
+                        <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/20 px-4 py-2 rounded-xl font-bold transition-all active:scale-95">
                             Delete Entry
                         </button>
                     </div>
@@ -1383,7 +1442,6 @@
             document.getElementById('csv-file-input').click();
         }
 
-        // Custom standard character-by-character RFC 4180 parsing engine
         function parseCsvLine(text) {
             let values = [];
             let insideQuote = false;
@@ -1420,7 +1478,7 @@
                 const text = e.target.result;
                 const rows = text.split('\n').map(r => r.trim()).filter(r => r);
                 if (rows.length < 2) {
-                    showToast('CSV file is empty or missing data rows.');
+                    showToast('CSV database registry is empty or missing data rows.');
                     return;
                 }
 
@@ -1475,20 +1533,20 @@
                                 const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
                                 await setDoc(newCardRef, newCard);
                             }
-                            showToast(`Successfully synchronized ${newInventory.length} dynamic entries to cloud.`);
+                            showToast(`Cloud Database overridden with ${newInventory.length} CSV listings.`);
                         } catch (err) {
-                            console.error("Firestore dynamic import failure:", err);
-                            showToast("Cloud sync failed. Check database configuration.");
+                            console.error("Cloud database bulk update crashed:", err);
+                            showToast("Cloud update failure. Try local storage instead.");
                         }
                     } else {
                         inventory = newInventory;
                         localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                         applyFilters();
                         renderAdminList();
-                        showToast(`Locally imported ${newInventory.length} dynamic entries.`);
+                        showToast(`Sandbox overridden with ${newInventory.length} CSV listings.`);
                     }
                 } else {
-                    showToast('Failure processing CSV layout configuration alignment.');
+                    showToast('Unable to parse CSV format.');
                 }
             };
             reader.readAsText(file);
@@ -1496,7 +1554,7 @@
 
         function exportInventoryToCsv() {
             if (inventory.length === 0) {
-                showToast("No data listings to export.");
+                showToast("No listings present to export.");
                 return;
             }
 
@@ -1529,8 +1587,15 @@
             document.body.removeChild(link);
         }
 
+        function loadMoreCards() {
+            displayLimit += 16;
+            renderStore(currentFilteredData);
+        }
+
+        // Initialize application flow
         initAuth();
 
+        // Bind utility methods globally
         window.goHome = goHome;
         window.toggleAdvancedSearch = toggleAdvancedSearch;
         window.showView = showView;
