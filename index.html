@@ -829,6 +829,14 @@
             document.getElementById('view-receipt').classList.add('hidden');
             document.getElementById('hero-search').classList.add('hidden');
             
+            // Clean up advanced search view panel when navigating to Admin or Cart
+            if (viewName !== 'browse') {
+                const searchPanel = document.getElementById('advanced-search-panel');
+                if (searchPanel) {
+                    searchPanel.classList.add('hidden');
+                }
+            }
+            
             if (viewName === 'browse') {
                 document.getElementById('view-browse').classList.remove('hidden');
                 document.getElementById('hero-search').classList.remove('hidden');
