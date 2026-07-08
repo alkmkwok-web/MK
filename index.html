@@ -27,7 +27,7 @@
         }
 
         .font-magic {
-            font-family: 'Inter', serif;
+            font-family: 'Cinzel', serif;
         }
 
         /* Perspective viewport for realistic 3D flipping depth */
@@ -522,7 +522,8 @@
                 colors = card.colors.split('|').map(c => c.trim());
             }
 
-            return {
+            // Core fields to map and normalize
+            const normalized = {
                 id: finalId.toString(),
                 Name: card.Name || card.name || 'Unnamed Card',
                 Set: card.Set || card.set || 'Unknown Set',
@@ -534,6 +535,16 @@
                 ImageURL_Back: card.ImageURL_Back || card.img_back || '',
                 Qty: parseInt(card.Qty !== undefined ? card.Qty : (card.qty !== undefined ? card.qty : 0)) || 0
             };
+
+            // Dynamic Extra Fields Preservation
+            const coreKeysLower = ['id', 'name', 'set', 'type', 'cmc', 'colors', 'imageurl', 'imageurl_back', 'qty', 'img', 'img_back', 'price'];
+            Object.keys(card).forEach(key => {
+                if (!coreKeysLower.includes(key.toLowerCase())) {
+                    normalized[key] = card[key];
+                }
+            });
+
+            return normalized;
         }
 
         const initAuth = async () => {
@@ -729,13 +740,14 @@
             flipper.classList.toggle('flipped');
         }
 
-        function toggleGridCardFlip(event, cardId) {
+        // Direct containment safety check preventing recursive overlay zoom triggers
+        window.toggleGridCardFlip = function(event, cardId) {
             if (event) event.stopPropagation();
             const flipper = document.getElementById(`grid-flipper-${cardId}`);
             if (flipper) {
                 flipper.classList.toggle('flipped');
             }
-        }
+        };
 
         function closeCardModal() {
             const modal = document.getElementById('card-modal');
@@ -1554,14 +1566,36 @@
                 return;
             }
 
-            const headers = ["Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty"];
+            // Core standard columns
+            const coreHeaders = ["Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty"];
+            
+            // Scan through current inventory database to dynamically gather all active custom extra properties
+            const extraHeadersSet = new Set();
+            inventory.forEach(card => {
+                const normalized = normalizeCard(card);
+                Object.keys(normalized).forEach(key => {
+                    if (key !== 'id' && !coreHeaders.includes(key)) {
+                        extraHeadersSet.add(key);
+                    }
+                });
+            });
+
+            // Combine both core and dynamic columns
+            const headers = [...coreHeaders, ...Array.from(extraHeadersSet)];
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += headers.join(",") + "\n";
 
             inventory.forEach(card => {
+                const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
-                    let val = card[header];
+                    let val = normalized[header];
+                    if (val === undefined || val === null) {
+                        return "";
+                    }
                     if (header === 'Colors' && Array.isArray(val)) {
+                        return `"${val.join('|')}"`;
+                    }
+                    if (Array.isArray(val)) {
                         return `"${val.join('|')}"`;
                     }
                     if (typeof val === 'string') {
