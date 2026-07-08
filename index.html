@@ -338,7 +338,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-[#12192a] p-6 rounded-2xl border border-slate-850 space-y-4 shadow-xl">
                     <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Bulk Upload & Export</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">Overwrite existing listings instantly using custom CSV datasets. Export catalogs for safe offline management.</p>
+                    <p class="text-xs text-slate-400 leading-relaxed">Modify listings using custom CSV datasets. Export catalogs for safe offline management.</p>
                     <div class="grid grid-cols-2 gap-3 pt-2">
                         <button onclick="triggerCsvImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors shadow shadow-indigo-950/30">
                             📥 Import CSV Data
@@ -347,7 +347,7 @@
                             📤 Export CSV Data
                         </button>
                     </div>
-                    <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="importInventoryFromCsv(event)">
+                    <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="promptCsvAction(event)">
                     <p class="text-[9px] text-slate-500 italic">Compatible with standard format: Setcode, Number, Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty</p>
                 </div>
 
@@ -412,12 +412,41 @@
                     Register item to Database
                 </button>
             </div>
+
+            <div class="space-y-4">
+                <h3 class="font-bold text-white text-sm uppercase tracking-wider font-magic">Current Stock List</h3>
+                <div id="admin-inventory-list" class="space-y-3.5 max-h-[500px] overflow-y-auto pr-1"></div>
+            </div>
             
         </div>
     </main>
 
     <div id="toast-notice" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-indigo-600 border border-indigo-400 text-white font-bold text-xs px-6 py-4 rounded-full shadow-2xl z-50 hidden transition-all duration-300 pointer-events-none transform translate-y-4 opacity-0 tracking-wide flex items-center gap-2"></div>
 
+    <!-- CSV Import Confirmation Modal -->
+    <div id="csv-import-modal" onclick="closeCsvModal()" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+        <div class="relative bg-[#12192a] border border-slate-800 p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-2xl relative text-center" onclick="event.stopPropagation()">
+            <button onclick="closeCsvModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors font-bold text-lg">
+                ✕
+            </button>
+            <div class="text-indigo-400 text-4xl mb-3">📥</div>
+            <h3 class="text-lg font-bold text-white mb-2 font-magic">Choose Import Mode</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-6">Select how you want to merge this dataset into the database collection. This action is persistent across all active synchronized devices.</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="handleCsvImportAction('overwrite')" class="bg-red-600 hover:bg-red-500 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-red-950/25">
+                    ⚠️ Overwrite
+                </button>
+                <button onclick="handleCsvImportAction('append')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-950/25">
+                    ➕ Append Mode
+                </button>
+            </div>
+            <button onclick="closeCsvModal()" class="w-full mt-4 bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all border border-slate-800">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Card Zoom Detail Modal -->
     <div id="card-modal" onclick="closeCardModal()" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
         <div class="relative max-w-sm w-full flex flex-col items-center" onclick="event.stopPropagation()">
             <!-- Close trigger -->
@@ -492,6 +521,7 @@
         let selectedColors = [];
         let activeView = 'browse';
         let currentUserState = null;
+        let pendingCsvFile = null;
 
         // Display pagination offsets
         let displayLimit = 16;
@@ -672,7 +702,6 @@
             }
         }
 
-        // Realtime sync implementation with complete path tracking and error logs
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
@@ -775,7 +804,6 @@
             flipper.classList.toggle('flipped');
         }
 
-        // Direct containment safety check preventing recursive overlay zoom triggers
         window.toggleGridCardFlip = function(event, cardId) {
             if (event) event.stopPropagation();
             const flipper = document.getElementById(`grid-flipper-${cardId}`);
@@ -853,7 +881,6 @@
             });
         }
 
-        // Direct multi-color mapping for mana symbols
         function toggleColorFilter(color, element) {
             const index = selectedColors.indexOf(color);
             if (index > -1) {
@@ -915,7 +942,6 @@
             const mainTypes = rawType.split('—')[0].split('-')[0].trim();
             const words = mainTypes.split(/\s+/);
             
-            // List of MTG supertypes to exclude from visual display
             const supertypesToExclude = ['legendary', 'basic', 'snow', 'world', 'ongoing', 'host'];
             
             return words.map(word => {
@@ -1544,15 +1570,43 @@
             return values;
         }
 
-        async function importInventoryFromCsv(event) {
+        function promptCsvAction(event) {
             const file = event.target.files[0];
             if (!file) return;
+            pendingCsvFile = file;
+
+            // Trigger premium confirmation modal display with clean micro-interaction
+            const modal = document.getElementById('csv-import-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+            }, 10);
+        }
+
+        function closeCsvModal() {
+            const modal = document.getElementById('csv-import-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+            pendingCsvFile = null;
+            document.getElementById('csv-file-input').value = '';
+        }
+
+        async function handleCsvImportAction(mode) {
+            if (!pendingCsvFile) {
+                closeCsvModal();
+                return;
+            }
+
+            const activeFile = pendingCsvFile;
+            closeCsvModal(); // Reset modal state variables immediately
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 let text = e.target.result;
                 
-                // Clear any invisible UTF-8 Byte Order Mark (BOM) prefixes completely
+                // Clear BOM prefixes if present
                 if (text.startsWith('\uFEFF')) {
                     text = text.substring(1);
                 }
@@ -1565,13 +1619,20 @@
 
                 const headers = parseCsvLine(rows[0]).map(h => h.trim());
                 let newInventory = [];
+                
+                // Calculate next valid incremental ID if appending
+                let baseId = 0;
+                if (mode === 'append') {
+                    baseId = inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) : 0;
+                }
 
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i];
                     const matches = parseCsvLine(row);
                     
                     if (matches.length >= headers.length) {
-                        let cardData = { id: (newInventory.length + 1).toString() };
+                        const newCardId = (mode === 'append' ? ++baseId : i).toString();
+                        let cardData = { id: newCardId };
 
                         headers.forEach((header, index) => {
                             let value = matches[index];
@@ -1581,7 +1642,6 @@
                                 value = "";
                             }
                             const lowerHeader = header.toLowerCase();
-                            // Clean spaces and separation symbols from header columns
                             const cleanHeader = lowerHeader.replace(/[\s_\-\uFEFF]/g, '');
                             
                             if (cleanHeader === 'price' || cleanHeader === 'cost') {
@@ -1617,21 +1677,31 @@
                 if (newInventory.length > 0) {
                     if (useFirebase && currentUserState) {
                         try {
-                            for (const oldCard of inventory) {
-                                const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
-                                await deleteDoc(oldCardRef);
+                            if (mode === 'overwrite') {
+                                // Wipe existing cards first
+                                for (const oldCard of inventory) {
+                                    const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
+                                    await deleteDoc(oldCardRef);
+                                }
                             }
+                            
+                            // Insert parsed collection
                             for (const newCard of newInventory) {
                                 const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
                                 await setDoc(newCardRef, newCard);
                             }
-                            showToast(`Cloud Database overridden with ${newInventory.length} CSV listings.`);
+                            
+                            showToast(`${mode === 'overwrite' ? 'Overwrote' : 'Appended'} database with ${newInventory.length} CSV listings.`);
                         } catch (err) {
                             console.error("Cloud database bulk update crashed:", err);
                             showToast("Cloud update failure. Try local storage instead.");
                         }
                     } else {
-                        inventory = newInventory;
+                        if (mode === 'overwrite') {
+                            inventory = newInventory;
+                        } else {
+                            inventory = [...inventory, ...newInventory];
+                        }
                         localStorage.setItem('magic_kaion_inventory', JSON.stringify(inventory));
                         applyFilters();
                         renderAdminList();
@@ -1641,7 +1711,7 @@
                     showToast('Unable to parse CSV format.');
                 }
             };
-            reader.readAsText(file);
+            reader.readAsText(activeFile);
         }
 
         function exportInventoryToCsv() {
@@ -1650,10 +1720,8 @@
                 return;
             }
 
-            // Core standard columns - Setcode as 1st, Number as 2nd column
             const coreHeaders = ["Setcode", "Number", "Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty"];
             
-            // Scan through current inventory database to dynamically gather all active custom extra properties
             const extraHeadersSet = new Set();
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
@@ -1664,7 +1732,6 @@
                 });
             });
 
-            // Combine both core and dynamic columns
             const headers = [...coreHeaders, ...Array.from(extraHeadersSet)];
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += headers.join(",") + "\n";
@@ -1672,7 +1739,6 @@
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
-                    // Extract directly from normalized standard/alternative properties
                     let val = normalized[header];
                     if (val === undefined || val === null) {
                         return "";
@@ -1727,7 +1793,9 @@
         window.addSingleCard = addSingleCard;
         window.removeCardFromInventory = removeCardFromInventory;
         window.triggerCsvImport = triggerCsvImport;
-        window.importInventoryFromCsv = importInventoryFromCsv;
+        window.promptCsvAction = promptCsvAction;
+        window.closeCsvModal = closeCsvModal;
+        window.handleCsvImportAction = handleCsvImportAction;
         window.exportInventoryToCsv = exportInventoryToCsv;
         window.openCardModal = openCardModal;
         window.closeCardModal = closeCardModal;
