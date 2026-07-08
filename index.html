@@ -825,6 +825,7 @@
             });
         }
 
+        // Direct multi-color mapping for mana symbols
         function toggleColorFilter(color, element) {
             const index = selectedColors.indexOf(color);
             if (index > -1) {
@@ -1614,6 +1615,7 @@
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
+                    // RESOLVED BUG: We now extract directly from fully mapped & normalized values
                     let val = normalized[header];
                     if (val === undefined || val === null) {
                         return "";
