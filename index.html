@@ -516,37 +516,61 @@
                 finalId = crypto.randomUUID();
             }
 
-            let colors = ['C'];
-            if (Array.isArray(card.Colors)) {
-                colors = card.Colors;
-            } else if (Array.isArray(card.colors)) {
-                colors = card.colors;
-            } else if (typeof card.Colors === 'string' && card.Colors) {
-                colors = card.Colors.split('|').map(c => c.trim());
-            } else if (typeof card.colors === 'string' && card.colors) {
-                colors = card.colors.split('|').map(c => c.trim());
-            }
-
-            // Core fields to map and normalize, with standardized Setcode and Number definitions
-            const normalized = {
-                id: finalId.toString(),
-                Name: card.Name || card.name || 'Unnamed Card',
-                Set: card.Set || card.set || 'Unknown Set',
-                Setcode: card.Setcode || card.SetCode || card.setcode || '',
-                Number: card.Number !== undefined ? card.Number.toString() : (card.number !== undefined ? card.number.toString() : ''),
-                Type: card.Type || card.type || 'Unknown Type',
-                CMC: card.CMC !== undefined ? card.CMC.toString() : (card.cmc !== undefined ? card.cmc.toString() : '0'),
-                Price: parseFloat(card.Price !== undefined ? card.Price : (card.price !== undefined ? card.price : 0.00)) || 0.00,
-                Colors: colors,
-                ImageURL: card.ImageURL || card.img || 'https://cards.scryfall.io/back.png',
-                ImageURL_Back: card.ImageURL_Back || card.img_back || '',
-                Qty: parseInt(card.Qty !== undefined ? card.Qty : (card.qty !== undefined ? card.qty : 0)) || 0
+            // Helper to query input attributes dynamically using lists of common alias patterns
+            const getVal = (keys) => {
+                for (let k of keys) {
+                    if (card[k] !== undefined && card[k] !== null) return card[k];
+                }
+                return undefined;
             };
 
-            // Dynamic Extra Fields Preservation
-            const coreKeysLower = ['id', 'name', 'set', 'setcode', 'number', 'type', 'cmc', 'colors', 'imageurl', 'imageurl_back', 'qty', 'img', 'img_back', 'price'];
+            let colors = ['C'];
+            const rawColors = getVal(['Colors', 'colors', 'Color', 'color']);
+            if (Array.isArray(rawColors)) {
+                colors = rawColors;
+            } else if (typeof rawColors === 'string' && rawColors) {
+                colors = rawColors.split('|').map(c => c.trim());
+            }
+
+            // Standardize card schema cleanly, recognizing diverse alternative casing structures
+            const normalized = {
+                id: finalId.toString(),
+                Name: getVal(['Name', 'name', 'cardname', 'CardName']) || 'Unnamed Card',
+                Set: getVal(['Set', 'set', 'setname', 'SetName', 'edition', 'Edition']) || 'Unknown Set',
+                Setcode: getVal(['Setcode', 'SetCode', 'setcode', 'set_code', 'Set_Code', 'Set Code', 'set code']) || '',
+                Number: (getVal(['Number', 'number', 'num', 'Num', 'cardnumber', 'CardNumber', 'Card Number', 'card number', 'card_number']) !== undefined) 
+                    ? getVal(['Number', 'number', 'num', 'Num', 'cardnumber', 'CardNumber', 'Card Number', 'card number', 'card_number']).toString() 
+                    : '',
+                Type: getVal(['Type', 'type', 'cardtype', 'CardType']) || 'Unknown Type',
+                CMC: (getVal(['CMC', 'cmc', 'manavalue', 'ManaValue']) !== undefined)
+                    ? getVal(['CMC', 'cmc', 'manavalue', 'ManaValue']).toString()
+                    : '0',
+                Price: parseFloat(getVal(['Price', 'price', 'cost', 'Cost'])) || 0.00,
+                Colors: colors,
+                ImageURL: getVal(['ImageURL', 'imageurl', 'img', 'Img', 'image', 'Image']) || 'https://cards.scryfall.io/back.png',
+                ImageURL_Back: getVal(['ImageURL_Back', 'imageurl_back', 'ImageURLBack', 'imageurlback', 'img_back', 'imgback', 'ImgBack', 'image_back', 'imageback']) || '',
+                Qty: parseInt(getVal(['Qty', 'qty', 'quantity', 'Quantity', 'stock', 'Stock'])) || 0
+            };
+
+            // Dynamic Extra Fields Preservation: Ignore all variants of standard columns
+            const standardKeysLower = [
+                'id', 'name', 'cardname',
+                'set', 'setname', 'edition',
+                'setcode', 'set_code', 'set code',
+                'number', 'num', 'cardnumber', 'card number', 'card_number',
+                'type', 'cardtype',
+                'cmc', 'manavalue',
+                'price', 'cost',
+                'colors', 'color',
+                'imageurl', 'img', 'image',
+                'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
+                'qty', 'quantity', 'stock'
+            ];
+
             Object.keys(card).forEach(key => {
-                if (!coreKeysLower.includes(key.toLowerCase())) {
+                const keyClean = key.toLowerCase().replace(/[\s_\-]/g, '');
+                const isStandard = standardKeysLower.some(sk => sk.toLowerCase().replace(/[\s_\-]/g, '') === keyClean);
+                if (key !== 'id' && !isStandard) {
                     normalized[key] = card[key];
                 }
             });
@@ -645,6 +669,7 @@
             }
         }
 
+        // Realtime sync implementation with complete path tracking and error logs
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
@@ -884,7 +909,6 @@
 
         function renderTypeBadges(rawType) {
             if (!rawType) return '';
-            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
             const mainTypes = rawType.split('—')[0].split('-')[0].trim();
             const words = mainTypes.split(/\s+/);
             
@@ -1111,10 +1135,26 @@
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Dynamic Extra Badges filtering: Exclude setcode, number, supertypes, and subtypes (core/excluded keys) from displaying here.
-                const coreKeysLower = ['id', 'name', 'set', 'setcode', 'number', 'type', 'cmc', 'colors', 'price', 'qty', 'imageurl', 'imageurl_back', 'supertypes', 'subtype', 'subtypes'];
+                // Dynamic Extra Badges filtering: Exclude standard keys and standard aliases
+                const standardKeysLower = [
+                    'id', 'name', 'cardname',
+                    'set', 'setname', 'edition',
+                    'setcode', 'set_code', 'set code',
+                    'number', 'num', 'cardnumber', 'card number', 'card_number',
+                    'type', 'cardtype',
+                    'cmc', 'manavalue',
+                    'price', 'cost',
+                    'colors', 'color',
+                    'imageurl', 'img', 'image',
+                    'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
+                    'qty', 'quantity', 'stock',
+                    'supertypes', 'subtype', 'subtypes'
+                ];
                 const extraBadges = Object.keys(cardItem)
-                    .filter(key => !coreKeysLower.includes(key.toLowerCase()))
+                    .filter(key => {
+                        const cleanKey = key.toLowerCase().replace(/[\s_\-]/g, '');
+                        return key !== 'id' && !standardKeysLower.some(sk => sk.toLowerCase().replace(/[\s_\-]/g, '') === cleanKey);
+                    })
                     .map(key => `<span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-indigo-400 rounded uppercase font-semibold truncate max-w-full">${key}: ${cardItem[key]}</span>`)
                     .join('');
 
@@ -1526,28 +1566,30 @@
                         headers.forEach((header, index) => {
                             let value = matches[index];
                             const lowerHeader = header.toLowerCase();
+                            // Clean spaces and separation symbols from header columns
+                            const cleanHeader = lowerHeader.replace(/[\s_\-]/g, '');
                             
-                            if (lowerHeader === 'price') {
+                            if (cleanHeader === 'price' || cleanHeader === 'cost') {
                                 cardData.Price = parseFloat(value) || 0.00;
-                            } else if (lowerHeader === 'qty') {
+                            } else if (cleanHeader === 'qty' || cleanHeader === 'quantity' || cleanHeader === 'stock') {
                                 cardData.Qty = parseInt(value) || 0;
-                            } else if (lowerHeader === 'cmc') {
+                            } else if (cleanHeader === 'cmc' || cleanHeader === 'manavalue') {
                                 cardData.CMC = value.toString();
-                            } else if (lowerHeader === 'colors') {
+                            } else if (cleanHeader === 'colors' || cleanHeader === 'color') {
                                 cardData.Colors = value ? value.toUpperCase().split('|').map(c => c.trim()) : ['C'];
-                            } else if (lowerHeader === 'imageurl') {
+                            } else if (cleanHeader === 'imageurl' || cleanHeader === 'img' || cleanHeader === 'image') {
                                 cardData.ImageURL = value;
-                            } else if (lowerHeader === 'imageurl_back') {
+                            } else if (cleanHeader === 'imageurlback' || cleanHeader === 'imgback' || cleanHeader === 'imageback') {
                                 cardData.ImageURL_Back = value;
-                            } else if (lowerHeader === 'name') {
+                            } else if (cleanHeader === 'name' || cleanHeader === 'cardname') {
                                 cardData.Name = value;
-                            } else if (lowerHeader === 'set') {
+                            } else if (cleanHeader === 'set' || cleanHeader === 'setname' || cleanHeader === 'edition') {
                                 cardData.Set = value;
-                            } else if (lowerHeader === 'setcode') {
+                            } else if (cleanHeader === 'setcode') {
                                 cardData.Setcode = value;
-                            } else if (lowerHeader === 'number') {
+                            } else if (cleanHeader === 'number' || cleanHeader === 'cardnumber' || cleanHeader === 'cardno' || cleanHeader === 'num') {
                                 cardData.Number = value;
-                            } else if (lowerHeader === 'type') {
+                            } else if (cleanHeader === 'type' || cleanHeader === 'cardtype') {
                                 cardData.Type = value;
                             } else {
                                 cardData[header] = value;
@@ -1615,7 +1657,7 @@
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
-                    // RESOLVED BUG: We now extract directly from fully mapped & normalized values
+                    // Extract directly from normalized standard/alternative properties
                     let val = normalized[header];
                     if (val === undefined || val === null) {
                         return "";
