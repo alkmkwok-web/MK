@@ -348,7 +348,7 @@
                         </button>
                     </div>
                     <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="promptCsvAction(event)">
-                    <p class="text-[9px] text-slate-500 italic">Compatible with standard format: Setcode, Number, Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty, Finishing</p>
+                    <p class="text-[9px] text-slate-500 italic">Compatible with standard format: Setcode, Number, Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty, Finishing, Condition</p>
                 </div>
 
                 <!-- Live Sales Log -->
@@ -398,13 +398,20 @@
                         <input id="admin-cmc" type="number" placeholder="Mana Value (CMC)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                         <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                         <input id="admin-qty" type="number" placeholder="Initial Inventory Stock" value="10" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                         <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                         <select id="admin-finishing" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                             <option value="">Normal Finish</option>
                             <option value="foil">Foil</option>
+                        </select>
+                        <select id="admin-condition" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                            <option value="Near Mint">Near Mint (NM)</option>
+                            <option value="Lightly Played">Lightly Played (LP)</option>
+                            <option value="Moderately Played">Moderately Played (MP)</option>
+                            <option value="Heavily Played">Heavily Played (HP)</option>
+                            <option value="Damaged">Damaged (DMG)</option>
                         </select>
                     </div>
                     
@@ -533,16 +540,15 @@
         let displayLimit = 16;
         let currentFilteredData = [];
 
-        // Master premium MTG single sets catalog (Seeded with standard Setcode, Number, and Finishing)
         const seedInventoryDefaults = [
-            { id: '1', Name: 'Black Lotus', Set: 'Alpha', Setcode: 'LEA', Number: '233', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '', Finishing: 'Foil' },
-            { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Setcode: 'WWK', Number: '31', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '', Finishing: '' },
-            { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Setcode: 'ISD', Number: '51', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', Finishing: '' },
-            { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Setcode: 'DOM', Number: '207', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '', Finishing: 'Foil' },
-            { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '202', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '', Finishing: '' },
-            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Setcode: 'KHM', Number: '123', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', Finishing: '' },
-            { id: '7', Name: 'Mox Diamond', Set: 'Stronghold', Setcode: 'STH', Number: '138', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 650.00, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/a/1a93e9b1-ba77-444b-896c-c59911e74716.jpg', ImageURL_Back: '', Finishing: 'Foil' },
-            { id: '8', Name: 'Ragavan, Nimble Pilferer', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '138', Type: 'Creature', CMC: '1', Colors: ['R'], Price: 38.00, Qty: 12, ImageURL: 'https://cards.scryfall.io/normal/front/a/1/a1eb900d-5136-44b7-b07f-538421b1ee9f.jpg', ImageURL_Back: '', Finishing: '' }
+            { id: '1', Name: 'Black Lotus', Set: 'Alpha', Setcode: 'LEA', Number: '233', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '', Finishing: 'Foil', Condition: 'Near Mint' },
+            { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Setcode: 'WWK', Number: '31', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '', Finishing: '', Condition: 'Near Mint' },
+            { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Setcode: 'ISD', Number: '51', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', Finishing: '', Condition: 'Lightly Played' },
+            { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Setcode: 'DOM', Number: '207', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '', Finishing: 'Foil', Condition: 'Near Mint' },
+            { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '202', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '', Finishing: '', Condition: 'Near Mint' },
+            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Setcode: 'KHM', Number: '123', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', Finishing: '', Condition: 'Near Mint' },
+            { id: '7', Name: 'Mox Diamond', Set: 'Stronghold', Setcode: 'STH', Number: '138', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 650.00, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/a/1a93e9b1-ba77-444b-896c-c59911e74716.jpg', ImageURL_Back: '', Finishing: 'Foil', Condition: 'Lightly Played' },
+            { id: '8', Name: 'Ragavan, Nimble Pilferer', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '138', Type: 'Creature', CMC: '1', Colors: ['R'], Price: 38.00, Qty: 12, ImageURL: 'https://cards.scryfall.io/normal/front/a/1/a1eb900d-5136-44b7-b07f-538421b1ee9f.jpg', ImageURL_Back: '', Finishing: '', Condition: 'Near Mint' }
         ];
 
         function normalizeCard(card, docId = null) {
@@ -552,7 +558,7 @@
                 finalId = crypto.randomUUID();
             }
 
-            // Fuzzy Standard Property Resolver (Handles BOM prefixes, spaces, casing, and separator variations automatically)
+            // Fuzzy Standard Property Resolver
             const getVal = (standardKeys) => {
                 const cleanStandard = standardKeys.map(k => k.toLowerCase().replace(/[\s_\-\uFEFF]/g, ''));
                 for (let rawKey of Object.keys(card)) {
@@ -590,7 +596,8 @@
                 ImageURL: getVal(['imageurl', 'img', 'image']) || 'https://cards.scryfall.io/back.png',
                 ImageURL_Back: getVal(['imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback']) || '',
                 Qty: parseInt(getVal(['qty', 'quantity', 'stock'])) || 0,
-                Finishing: getVal(['finishing', 'finish']) || ''
+                Finishing: getVal(['finishing', 'finish']) || '',
+                Condition: getVal(['condition', 'cond', 'cardcondition', 'card_condition']) || 'Near Mint'
             };
 
             // Dynamic Extra Fields Preservation: Ignore all variants of standard columns
@@ -606,7 +613,8 @@
                 'imageurl', 'img', 'image',
                 'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
                 'qty', 'quantity', 'stock',
-                'finishing', 'finish'
+                'finishing', 'finish',
+                'condition', 'cond', 'cardcondition', 'card_condition'
             ].map(sk => sk.toLowerCase().replace(/[\s_\-\uFEFF]/g, ''));
 
             Object.keys(card).forEach(key => {
@@ -617,6 +625,17 @@
             });
 
             return normalized;
+        }
+
+        function getFormattedCardName(name, condition, finishing) {
+            const condText = condition || 'Near Mint';
+            let finishText = finishing || '';
+            if (!finishText || finishText.trim() === '') {
+                finishText = 'Non-foil';
+            } else if (finishText.toLowerCase() === 'foil') {
+                finishText = 'Foil';
+            }
+            return `${name} - ${condText} - ${finishText}`;
         }
 
         const initAuth = async () => {
@@ -710,7 +729,6 @@
             }
         }
 
-        // Realtime sync implementation with complete path tracking and error logs
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
@@ -836,7 +854,6 @@
             flipper.classList.toggle('flipped');
         }
 
-        // Direct containment safety check preventing recursive overlay zoom triggers
         window.toggleGridCardFlip = function(event, cardId) {
             if (event) event.stopPropagation();
             const flipper = document.getElementById(`grid-flipper-${cardId}`);
@@ -862,7 +879,6 @@
             document.getElementById('view-receipt').classList.add('hidden');
             document.getElementById('hero-search').classList.add('hidden');
             
-            // Clean up advanced search view panel when navigating to Admin or Cart
             if (viewName !== 'browse') {
                 const searchPanel = document.getElementById('advanced-search-panel');
                 if (searchPanel) {
@@ -922,7 +938,6 @@
             });
         }
 
-        // Direct multi-color mapping for mana symbols
         function toggleColorFilter(color, element) {
             const index = selectedColors.indexOf(color);
             if (index > -1) {
@@ -981,11 +996,8 @@
 
         function renderTypeBadges(rawType) {
             if (!rawType) return '';
-            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
             const mainTypes = rawType.split('—')[0].split('-')[0].trim();
             const words = mainTypes.split(/\s+/);
-            
-            // List of MTG supertypes to exclude from visual display
             const supertypesToExclude = ['legendary', 'basic', 'snow', 'world', 'ongoing', 'host'];
             
             return words.map(word => {
@@ -1057,12 +1069,15 @@
                     const itemSet = item.Setcode || item.SetCode || item.Set || item.set || '';
                     const itemQty = parseInt(item.qty !== undefined ? item.qty : (item.Qty !== undefined ? item.Qty : 1)) || 1;
                     const itemImg = item.ImageURL || item.img || 'https://cards.scryfall.io/back.png';
+                    const itemCondition = item.Condition || item.condition || 'Near Mint';
+                    const itemFinishing = item.Finishing || item.finishing || '';
+                    const displayName = getFormattedCardName(itemName, itemCondition, itemFinishing);
 
                     return `
                         <div class="flex items-center gap-3 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/60">
                             <img src="${itemImg}" onclick="openCardModal('${item.id || ''}')" class="w-8 h-11 object-cover rounded shadow cursor-zoom-in">
                             <div class="min-w-0 flex-grow">
-                                <p class="text-white text-xs font-bold truncate">${itemName}</p>
+                                <p class="text-white text-xs font-bold truncate" title="${displayName}">${displayName}</p>
                                 <p class="text-[9px] text-slate-500 font-medium uppercase mt-0.5">Set: ${itemSet} • Qty: ${itemQty} • $${itemPrice.toLocaleString(undefined, {minimumFractionDigits: 2})} ea</p>
                             </div>
                         </div>
@@ -1208,7 +1223,7 @@
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Dynamic Extra Badges filtering: Exclude standard keys, standard aliases, and Finishing
+                // Dynamic Extra Badges filtering
                 const standardKeysLower = [
                     'id', 'name', 'cardname',
                     'set', 'setname', 'edition',
@@ -1222,7 +1237,7 @@
                     'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
                     'qty', 'quantity', 'stock',
                     'supertypes', 'subtype', 'subtypes',
-                    'finishing', 'finish'
+                    'finishing', 'finish', 'condition', 'cond', 'cardcondition', 'card_condition'
                 ].map(sk => sk.toLowerCase().replace(/[\s_\-\uFEFF]/g, ''));
                 
                 const extraBadges = Object.keys(cardItem)
@@ -1233,7 +1248,6 @@
                     .map(key => `<span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-indigo-400 rounded uppercase font-semibold truncate max-w-full">${key}: ${cardItem[key]}</span>`)
                     .join('');
 
-                // Custom Responsive Vector Foil Stamp Corner Ribbon
                 const foilOverlay = (card.Finishing && card.Finishing.toLowerCase() === 'foil') ? `
                     <div class="absolute bottom-0 right-0 w-12 h-12 overflow-hidden pointer-events-none z-10 select-none rounded-br-2xl">
                         <svg class="w-full h-full filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -1342,11 +1356,13 @@
             cartDisplay.innerHTML = cart.map((card, index) => {
                 runningSum += card.Price;
                 const setcodeToShow = card.Setcode || card.Set || 'N/A';
+                const displayName = getFormattedCardName(card.Name, card.Condition, card.Finishing);
+
                 return `
                     <div class="flex items-center gap-4 bg-[#12192a] p-4 rounded-2xl border border-slate-850 shadow-md">
                         <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-12 h-17 object-cover rounded-lg shadow cursor-zoom-in">
                         <div class="flex-grow min-width-0">
-                            <h4 class="text-white font-extrabold text-sm truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${card.id}')">${card.Name}</h4>
+                            <h4 class="text-white font-extrabold text-sm truncate cursor-pointer hover:text-indigo-400" onclick="openCardModal('${card.id}')" title="${displayName}">${displayName}</h4>
                             <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mt-0.5">Set: ${setcodeToShow}</p>
                             <span class="text-amber-500 font-black text-sm block mt-1">$${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
@@ -1384,12 +1400,15 @@
                 const subTotal = card.Price * item.qty;
                 const setcodeToShow = card.Setcode || card.Set || 'N/A';
                 totalRecapSum += subTotal;
+                
+                const displayName = getFormattedCardName(card.Name, card.Condition, card.Finishing);
+
                 return {
                     markup: `
                         <div class="flex items-center gap-4 bg-[#12192a]/80 p-4.5 rounded-2xl border border-slate-850">
                             <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-10 h-14 object-cover rounded-lg shadow cursor-zoom-in">
                             <div class="flex-grow min-width-0">
-                                <h4 class="text-white text-xs font-bold truncate">${card.Name}</h4>
+                                <h4 class="text-white text-xs font-bold truncate" title="${displayName}">${displayName}</h4>
                                 <p class="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">Set: ${setcodeToShow} • Qty Purchased: ${item.qty}</p>
                                 <span class="text-amber-500 font-black text-xs block mt-1">$${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
@@ -1402,7 +1421,9 @@
                         Setcode: card.Setcode || '',
                         qty: item.qty,
                         Price: card.Price,
-                        ImageURL: card.ImageURL
+                        ImageURL: card.ImageURL,
+                        Condition: card.Condition || 'Near Mint',
+                        Finishing: card.Finishing || ''
                     }
                 };
             });
@@ -1521,6 +1542,7 @@
             const Qty = parseInt(document.getElementById('admin-qty').value) || 10;
             const colorsInput = document.getElementById('admin-colors').value.trim();
             const Finishing = document.getElementById('admin-finishing').value;
+            const Condition = document.getElementById('admin-condition').value;
             const ImageURL = document.getElementById('admin-img').value.trim() || 'https://cards.scryfall.io/back.png';
             const ImageURL_Back = document.getElementById('admin-img-back').value.trim() || '';
 
@@ -1532,7 +1554,7 @@
             const Colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
             const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
             
-            const newCard = normalizeCard({ id: newId, Name, Set, Setcode, Number: NumberVal, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back, Finishing });
+            const newCard = normalizeCard({ id: newId, Name, Set, Setcode, Number: NumberVal, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back, Finishing, Condition });
 
             if (useFirebase && currentUserState) {
                 try {
@@ -1561,6 +1583,7 @@
             document.getElementById('admin-qty').value = '10';
             document.getElementById('admin-colors').value = '';
             document.getElementById('admin-finishing').value = '';
+            document.getElementById('admin-condition').value = 'Near Mint';
             document.getElementById('admin-img').value = '';
             document.getElementById('admin-img-back').value = '';
         }
@@ -1589,14 +1612,15 @@
             if (!adminList) return;
             adminList.innerHTML = inventory.map(normalizeCard).map(card => {
                 const displaySet = card.Setcode || card.Set || 'Unknown';
-                const hasFoil = card.Finishing && card.Finishing.toLowerCase() === 'foil' ? ' <span class="text-xs bg-gradient-to-r from-violet-500 to-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded ml-1.5 uppercase tracking-wider text-[8px]">Foil</span>' : '';
+                const displayCond = card.Condition || 'Near Mint';
+                const hasFoil = card.Finishing && card.Finishing.toLowerCase() === 'foil' ? ' <span class="text-xs bg-gradient-to-r from-violet-500 to-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded ml-1.5 uppercase tracking-wider text-[8px]">Foil</span>' : ' <span class="text-xs bg-slate-800 text-slate-400 font-bold px-1.5 py-0.5 rounded ml-1.5 uppercase tracking-wider text-[8px]">Non-foil</span>';
                 return `
                     <div class="flex items-center justify-between bg-[#12192a] p-3.5 rounded-xl border border-slate-850">
                         <div class="flex items-center gap-3">
                             <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
                             <div>
                                 <h4 class="text-white text-xs font-bold leading-snug flex items-center">${card.Name}${hasFoil}</h4>
-                                <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Set: ${displaySet} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
+                                <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Set: ${displaySet} • Cond: ${displayCond} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
                             </div>
                         </div>
                         <button onclick="removeCardFromInventory('${card.id}')" class="text-xs bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/20 px-4 py-2 rounded-xl font-bold transition-all active:scale-95">
@@ -1643,7 +1667,6 @@
             if (!file) return;
             pendingCsvFile = file;
 
-            // Trigger premium confirmation modal display with clean micro-interaction
             const modal = document.getElementById('csv-import-modal');
             modal.classList.remove('hidden');
             setTimeout(() => {
@@ -1668,13 +1691,12 @@
             }
 
             const activeFile = pendingCsvFile;
-            closeCsvModal(); // Reset modal state variables immediately
+            closeCsvModal();
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 let text = e.target.result;
                 
-                // Clear BOM prefixes if present
                 if (text.startsWith('\uFEFF')) {
                     text = text.substring(1);
                 }
@@ -1688,7 +1710,6 @@
                 const headers = parseCsvLine(rows[0]).map(h => h.trim());
                 let newInventory = [];
                 
-                // Calculate next valid incremental ID if appending
                 let baseId = 0;
                 if (mode === 'append') {
                     baseId = inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) : 0;
@@ -1710,7 +1731,6 @@
                                 value = "";
                             }
                             const lowerHeader = header.toLowerCase();
-                            // Clean spaces and separation symbols from header columns
                             const cleanHeader = lowerHeader.replace(/[\s_\-\uFEFF]/g, '');
                             
                             if (cleanHeader === 'price' || cleanHeader === 'cost') {
@@ -1737,6 +1757,8 @@
                                 cardData.Type = value;
                             } else if (cleanHeader === 'finishing' || cleanHeader === 'finish') {
                                 cardData.Finishing = value;
+                            } else if (cleanHeader === 'condition' || cleanHeader === 'cond' || cleanHeader === 'cardcondition') {
+                                cardData.Condition = value;
                             } else {
                                 cardData[header] = value;
                             }
@@ -1749,14 +1771,12 @@
                     if (useFirebase && currentUserState) {
                         try {
                             if (mode === 'overwrite') {
-                                // Wipe existing cards first
                                 for (const oldCard of inventory) {
                                     const oldCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', oldCard.id);
                                     await deleteDoc(oldCardRef);
                                 }
                             }
                             
-                            // Insert parsed collection
                             for (const newCard of newInventory) {
                                 const newCardRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', newCard.id);
                                 await setDoc(newCardRef, newCard);
@@ -1791,10 +1811,7 @@
                 return;
             }
 
-            // Core standard columns - Setcode as 1st, Number as 2nd column
-            const coreHeaders = ["Setcode", "Number", "Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty", "Finishing"];
-            
-            // Scan through current inventory database to dynamically gather all active custom extra properties
+            const coreHeaders = ["Setcode", "Number", "Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty", "Finishing", "Condition"];
             const extraHeadersSet = new Set();
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
@@ -1805,7 +1822,6 @@
                 });
             });
 
-            // Combine both core and dynamic columns
             const headers = [...coreHeaders, ...Array.from(extraHeadersSet)];
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += headers.join(",") + "\n";
@@ -1813,7 +1829,6 @@
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
-                    // Extract directly from normalized standard/alternative properties
                     let val = normalized[header];
                     if (val === undefined || val === null) {
                         return "";
@@ -1851,7 +1866,6 @@
         // Initialize application flow
         initAuth();
 
-        // Bind utility methods globally
         window.goHome = goHome;
         window.toggleAdvancedSearch = toggleAdvancedSearch;
         window.showView = showView;
