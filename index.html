@@ -348,7 +348,7 @@
                         </button>
                     </div>
                     <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="promptCsvAction(event)">
-                    <p class="text-[9px] text-slate-500 italic">Compatible with standard format: Setcode, Number, Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty</p>
+                    <p class="text-[9px] text-slate-500 italic">Compatible with standard format: Setcode, Number, Name, Set, Type, CMC, Price, Colors, ImageURL, ImageURL_Back, Qty, Finishing</p>
                 </div>
 
                 <!-- Live Sales Log -->
@@ -398,10 +398,14 @@
                         <input id="admin-cmc" type="number" placeholder="Mana Value (CMC)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <input id="admin-price" type="number" step="0.01" placeholder="Price (USD)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                         <input id="admin-qty" type="number" placeholder="Initial Inventory Stock" value="10" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
                         <input id="admin-colors" type="text" placeholder="Colors (W,U,B,R,G,C)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                        <select id="admin-finishing" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
+                            <option value="">Normal Finish</option>
+                            <option value="foil">Foil</option>
+                        </select>
                     </div>
                     
                     <input id="admin-img" type="text" placeholder="Scryfall Front-Face Image URL (https://...)" class="w-full bg-[#0a101e] border border-slate-850 rounded-xl p-3.5 text-xs text-slate-200 focus:border-indigo-500 outline-none">
@@ -457,10 +461,12 @@
             <!-- 3D Card flipper frame -->
             <div class="w-full aspect-[5/7] max-h-[60vh] flip-container mb-6 relative" style="width: 290px; height: 406px;">
                 <div id="modal-flipper" class="flipper w-full h-full rounded-2xl shadow-2xl">
-                    <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                    <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 relative">
                         <img id="modal-card-img" src="" alt="Zoomed Front Face" class="w-full h-full object-cover">
+                        <!-- Responsive Vector Foil Overlap Badge -->
+                        <div id="modal-foil-badge" class="absolute bottom-0 right-0 w-14 h-14 overflow-hidden pointer-events-none z-10 select-none rounded-br-2xl hidden"></div>
                     </div>
-                    <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                    <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 relative">
                         <img id="modal-card-img-back" src="" alt="Zoomed Back Face" class="w-full h-full object-cover">
                     </div>
                 </div>
@@ -527,16 +533,16 @@
         let displayLimit = 16;
         let currentFilteredData = [];
 
-        // Master premium MTG single sets catalog (Seeded with standard Setcode and Number)
+        // Master premium MTG single sets catalog (Seeded with standard Setcode, Number, and Finishing)
         const seedInventoryDefaults = [
-            { id: '1', Name: 'Black Lotus', Set: 'Alpha', Setcode: 'LEA', Number: '233', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '' },
-            { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Setcode: 'WWK', Number: '31', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '' },
-            { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Setcode: 'ISD', Number: '51', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg' },
-            { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Setcode: 'DOM', Number: '207', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '' },
-            { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '202', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '' },
-            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Setcode: 'KHM', Number: '123', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg' },
-            { id: '7', Name: 'Mox Diamond', Set: 'Stronghold', Setcode: 'STH', Number: '138', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 650.00, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/a/1a93e9b1-ba77-444b-896c-c59911e74716.jpg', ImageURL_Back: '' },
-            { id: '8', Name: 'Ragavan, Nimble Pilferer', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '138', Type: 'Creature', CMC: '1', Colors: ['R'], Price: 38.00, Qty: 12, ImageURL: 'https://cards.scryfall.io/normal/front/a/1/a1eb900d-5136-44b7-b07f-538421b1ee9f.jpg', ImageURL_Back: '' }
+            { id: '1', Name: 'Black Lotus', Set: 'Alpha', Setcode: 'LEA', Number: '233', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 45000, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', ImageURL_Back: '', Finishing: 'Foil' },
+            { id: '2', Name: 'Jace, the Mind Sculptor', Set: 'Worldwake', Setcode: 'WWK', Number: '31', Type: 'Planeswalker', CMC: '4', Colors: ['U'], Price: 45.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/c/8/c8817585-0d32-4d56-9142-0d29512e86a9.jpg', ImageURL_Back: '', Finishing: '' },
+            { id: '3', Name: 'Delver of Secrets // Insectile Aberration', Set: 'Innistrad', Setcode: 'ISD', Number: '51', Type: 'Creature', CMC: '1', Colors: ['U'], Price: 1.50, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/a/b/ab1a6a1f-ce7e-4048-8926-d59773c11389.jpg', Finishing: '' },
+            { id: '4', Name: 'Teferi, Hero of Dominaria', Set: 'Dominaria', Setcode: 'DOM', Number: '207', Type: 'Planeswalker', CMC: '5', Colors: ['W', 'U'], Price: 28.00, Qty: 10, ImageURL: 'https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg', ImageURL_Back: '', Finishing: 'Foil' },
+            { id: '5', Name: 'Grist, the Hunger Tide', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '202', Type: 'Planeswalker', CMC: '3', Colors: ['B', 'G'], Price: 5.00, Qty: 15, ImageURL: 'https://cards.scryfall.io/normal/front/6/9/69af2825-18c2-4463-b6ba-42eaa070ccc1.jpg', ImageURL_Back: '', Finishing: '' },
+            { id: '6', Name: 'Birgi, God of Storytelling // Harnfel, Horn of Bounty', Set: 'Kaldheim', Setcode: 'KHM', Number: '123', Type: 'Creature', CMC: '3', Colors: ['R'], Price: 8.25, Qty: 8, ImageURL: 'https://cards.scryfall.io/normal/front/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', ImageURL_Back: 'https://cards.scryfall.io/normal/back/4/4/44657ab1-0a6a-4a5f-9688-86f239083821.jpg', Finishing: '' },
+            { id: '7', Name: 'Mox Diamond', Set: 'Stronghold', Setcode: 'STH', Number: '138', Type: 'Artifact', CMC: '0', Colors: ['C'], Price: 650.00, Qty: 5, ImageURL: 'https://cards.scryfall.io/normal/front/1/a/1a93e9b1-ba77-444b-896c-c59911e74716.jpg', ImageURL_Back: '', Finishing: 'Foil' },
+            { id: '8', Name: 'Ragavan, Nimble Pilferer', Set: 'Modern Horizons 2', Setcode: 'MH2', Number: '138', Type: 'Creature', CMC: '1', Colors: ['R'], Price: 38.00, Qty: 12, ImageURL: 'https://cards.scryfall.io/normal/front/a/1/a1eb900d-5136-44b7-b07f-538421b1ee9f.jpg', ImageURL_Back: '', Finishing: '' }
         ];
 
         function normalizeCard(card, docId = null) {
@@ -583,7 +589,8 @@
                 Colors: colors,
                 ImageURL: getVal(['imageurl', 'img', 'image']) || 'https://cards.scryfall.io/back.png',
                 ImageURL_Back: getVal(['imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback']) || '',
-                Qty: parseInt(getVal(['qty', 'quantity', 'stock'])) || 0
+                Qty: parseInt(getVal(['qty', 'quantity', 'stock'])) || 0,
+                Finishing: getVal(['finishing', 'finish']) || ''
             };
 
             // Dynamic Extra Fields Preservation: Ignore all variants of standard columns
@@ -598,7 +605,8 @@
                 'colors', 'color',
                 'imageurl', 'img', 'image',
                 'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
-                'qty', 'quantity', 'stock'
+                'qty', 'quantity', 'stock',
+                'finishing', 'finish'
             ].map(sk => sk.toLowerCase().replace(/[\s_\-\uFEFF]/g, ''));
 
             Object.keys(card).forEach(key => {
@@ -702,6 +710,7 @@
             }
         }
 
+        // Realtime sync implementation with complete path tracking and error logs
         function setupRealtimeSync() {
             if (!currentUserState || !useFirebase) return;
 
@@ -777,6 +786,7 @@
             const modalCaption = document.getElementById('modal-card-caption');
             const modalFlipper = document.getElementById('modal-flipper');
             const modalFlipBtn = document.getElementById('modal-flip-btn');
+            const modalFoilBadge = document.getElementById('modal-foil-badge');
 
             modalFlipper.classList.remove('flipped');
             modalImg.src = card.ImageURL;
@@ -791,6 +801,28 @@
 
             modalCaption.innerText = `${card.Name} — Set: ${card.Setcode || card.Set}`;
 
+            // Inject the vector-rendered foil stamp seamlessly if card finish is foil
+            if (card.Finishing && card.Finishing.toLowerCase() === 'foil') {
+                modalFoilBadge.innerHTML = `
+                    <svg class="w-full h-full filter drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.6)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="modalFoilGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#a855f7" />
+                                <stop offset="35%" stop-color="#ec4899" />
+                                <stop offset="70%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#eab308" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="100,0 100,100 0,100" fill="url(#modalFoilGrad)" />
+                        <text x="70" y="80" fill="#ffffff" font-size="16" font-family="'Inter', sans-serif" font-weight="900" transform="rotate(-45 70 80)" text-anchor="middle">★</text>
+                    </svg>
+                `;
+                modalFoilBadge.classList.remove('hidden');
+            } else {
+                modalFoilBadge.innerHTML = '';
+                modalFoilBadge.classList.add('hidden');
+            }
+
             modal.classList.remove('hidden');
             document.body.classList.add('modal-open');
             setTimeout(() => {
@@ -804,6 +836,7 @@
             flipper.classList.toggle('flipped');
         }
 
+        // Direct containment safety check preventing recursive overlay zoom triggers
         window.toggleGridCardFlip = function(event, cardId) {
             if (event) event.stopPropagation();
             const flipper = document.getElementById(`grid-flipper-${cardId}`);
@@ -889,6 +922,7 @@
             });
         }
 
+        // Direct multi-color mapping for mana symbols
         function toggleColorFilter(color, element) {
             const index = selectedColors.indexOf(color);
             if (index > -1) {
@@ -947,9 +981,11 @@
 
         function renderTypeBadges(rawType) {
             if (!rawType) return '';
+            // Split types before any subtype hyphens (e.g., "Artifact Creature - Soldier" -> "Artifact Creature")
             const mainTypes = rawType.split('—')[0].split('-')[0].trim();
             const words = mainTypes.split(/\s+/);
             
+            // List of MTG supertypes to exclude from visual display
             const supertypesToExclude = ['legendary', 'basic', 'snow', 'world', 'ongoing', 'host'];
             
             return words.map(word => {
@@ -1172,7 +1208,7 @@
 
                 const stockColor = card.Qty > 3 ? 'text-emerald-500' : (card.Qty > 0 ? 'text-amber-500' : 'text-red-500');
 
-                // Dynamic Extra Badges filtering: Exclude standard keys and standard aliases
+                // Dynamic Extra Badges filtering: Exclude standard keys, standard aliases, and Finishing
                 const standardKeysLower = [
                     'id', 'name', 'cardname',
                     'set', 'setname', 'edition',
@@ -1185,7 +1221,8 @@
                     'imageurl', 'img', 'image',
                     'imageurl_back', 'imageurlback', 'img_back', 'imgback', 'image_back', 'imageback',
                     'qty', 'quantity', 'stock',
-                    'supertypes', 'subtype', 'subtypes'
+                    'supertypes', 'subtype', 'subtypes',
+                    'finishing', 'finish'
                 ].map(sk => sk.toLowerCase().replace(/[\s_\-\uFEFF]/g, ''));
                 
                 const extraBadges = Object.keys(cardItem)
@@ -1196,15 +1233,34 @@
                     .map(key => `<span class="inline-block px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-indigo-400 rounded uppercase font-semibold truncate max-w-full">${key}: ${cardItem[key]}</span>`)
                     .join('');
 
+                // Custom Responsive Vector Foil Stamp Corner Ribbon
+                const foilOverlay = (card.Finishing && card.Finishing.toLowerCase() === 'foil') ? `
+                    <div class="absolute bottom-0 right-0 w-12 h-12 overflow-hidden pointer-events-none z-10 select-none rounded-br-2xl">
+                        <svg class="w-full h-full filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="foilGrad-${card.id}" x1="0%" y1="100%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#a855f7" />
+                                    <stop offset="35%" stop-color="#ec4899" />
+                                    <stop offset="70%" stop-color="#3b82f6" />
+                                    <stop offset="100%" stop-color="#eab308" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="100,0 100,100 0,100" fill="url(#foilGrad-${card.id})" />
+                            <text x="68" y="80" fill="#ffffff" font-size="15" font-family="'Inter', sans-serif" font-weight="900" transform="rotate(-45 68 80)" text-anchor="middle">★</text>
+                        </svg>
+                    </div>
+                ` : '';
+
                 let mediaFrame = '';
                 if (card.ImageURL_Back) {
                     mediaFrame = `
                         <div class="relative rounded-2xl aspect-[5/7] cursor-pointer mb-4 flip-container" onclick="openCardModal('${card.id}')">
                             <div id="grid-flipper-${card.id}" class="flipper rounded-2xl">
-                                <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                                <div class="front-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 relative">
                                     <img src="${card.ImageURL}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
+                                    ${foilOverlay}
                                 </div>
-                                <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                                <div class="back-face rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 relative">
                                     <img src="${card.ImageURL_Back}" onerror="this.src='https://cards.scryfall.io/back.png'" class="w-full h-full object-cover">
                                 </div>
                             </div>
@@ -1221,6 +1277,7 @@
                             <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
                                 <span class="text-white text-[11px] bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 uppercase tracking-widest font-extrabold shadow-2xl">🔍 View Card</span>
                             </div>
+                            ${foilOverlay}
                         </div>
                     `;
                 }
@@ -1463,6 +1520,7 @@
             const Price = parseFloat(document.getElementById('admin-price').value) || 0.00;
             const Qty = parseInt(document.getElementById('admin-qty').value) || 10;
             const colorsInput = document.getElementById('admin-colors').value.trim();
+            const Finishing = document.getElementById('admin-finishing').value;
             const ImageURL = document.getElementById('admin-img').value.trim() || 'https://cards.scryfall.io/back.png';
             const ImageURL_Back = document.getElementById('admin-img-back').value.trim() || '';
 
@@ -1474,7 +1532,7 @@
             const Colors = colorsInput ? colorsInput.toUpperCase().split(',').map(c => c.trim()) : ['C'];
             const newId = (inventory.length > 0 ? Math.max(...inventory.map(c => parseInt(c.id) || 0)) + 1 : 1).toString();
             
-            const newCard = normalizeCard({ id: newId, Name, Set, Setcode, Number: NumberVal, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back });
+            const newCard = normalizeCard({ id: newId, Name, Set, Setcode, Number: NumberVal, Type, CMC, Colors, Price, Qty, ImageURL, ImageURL_Back, Finishing });
 
             if (useFirebase && currentUserState) {
                 try {
@@ -1502,6 +1560,7 @@
             document.getElementById('admin-price').value = '';
             document.getElementById('admin-qty').value = '10';
             document.getElementById('admin-colors').value = '';
+            document.getElementById('admin-finishing').value = '';
             document.getElementById('admin-img').value = '';
             document.getElementById('admin-img-back').value = '';
         }
@@ -1530,12 +1589,13 @@
             if (!adminList) return;
             adminList.innerHTML = inventory.map(normalizeCard).map(card => {
                 const displaySet = card.Setcode || card.Set || 'Unknown';
+                const hasFoil = card.Finishing && card.Finishing.toLowerCase() === 'foil' ? ' <span class="text-xs bg-gradient-to-r from-violet-500 to-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded ml-1.5 uppercase tracking-wider text-[8px]">Foil</span>' : '';
                 return `
                     <div class="flex items-center justify-between bg-[#12192a] p-3.5 rounded-xl border border-slate-850">
                         <div class="flex items-center gap-3">
                             <img src="${card.ImageURL}" onclick="openCardModal('${card.id}')" class="w-8 h-12 object-cover rounded shadow cursor-zoom-in">
                             <div>
-                                <h4 class="text-white text-xs font-bold leading-snug">${card.Name}</h4>
+                                <h4 class="text-white text-xs font-bold leading-snug flex items-center">${card.Name}${hasFoil}</h4>
                                 <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Set: ${displaySet} • $${card.Price.toLocaleString(undefined, {minimumFractionDigits: 2})} • Stock: ${card.Qty}</p>
                             </div>
                         </div>
@@ -1650,6 +1710,7 @@
                                 value = "";
                             }
                             const lowerHeader = header.toLowerCase();
+                            // Clean spaces and separation symbols from header columns
                             const cleanHeader = lowerHeader.replace(/[\s_\-\uFEFF]/g, '');
                             
                             if (cleanHeader === 'price' || cleanHeader === 'cost') {
@@ -1674,6 +1735,8 @@
                                 cardData.Number = value;
                             } else if (cleanHeader === 'type' || cleanHeader === 'cardtype') {
                                 cardData.Type = value;
+                            } else if (cleanHeader === 'finishing' || cleanHeader === 'finish') {
+                                cardData.Finishing = value;
                             } else {
                                 cardData[header] = value;
                             }
@@ -1728,8 +1791,10 @@
                 return;
             }
 
-            const coreHeaders = ["Setcode", "Number", "Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty"];
+            // Core standard columns - Setcode as 1st, Number as 2nd column
+            const coreHeaders = ["Setcode", "Number", "Name", "Set", "Type", "CMC", "Price", "Colors", "ImageURL", "ImageURL_Back", "Qty", "Finishing"];
             
+            // Scan through current inventory database to dynamically gather all active custom extra properties
             const extraHeadersSet = new Set();
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
@@ -1740,6 +1805,7 @@
                 });
             });
 
+            // Combine both core and dynamic columns
             const headers = [...coreHeaders, ...Array.from(extraHeadersSet)];
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += headers.join(",") + "\n";
@@ -1747,6 +1813,7 @@
             inventory.forEach(card => {
                 const normalized = normalizeCard(card);
                 const rowValues = headers.map(header => {
+                    // Extract directly from normalized standard/alternative properties
                     let val = normalized[header];
                     if (val === undefined || val === null) {
                         return "";
